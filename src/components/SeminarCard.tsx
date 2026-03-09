@@ -1,0 +1,77 @@
+import { Calendar, Clock, MapPin, User } from "lucide-react";
+import { format, parseISO } from "date-fns";
+import type { Seminar } from "@/data/seminars";
+import { universityDotMap } from "@/data/seminars";
+
+interface SeminarCardProps {
+  seminar: Seminar;
+  index: number;
+}
+
+const SeminarCard = ({ seminar, index }: SeminarCardProps) => {
+  const dateObj = parseISO(seminar.date);
+  const dotClass = universityDotMap[seminar.university];
+
+  return (
+    <article
+      className="group bg-card rounded-lg shadow-card hover:shadow-card-hover transition-all duration-300 overflow-hidden opacity-0 animate-fade-in-up"
+      style={{ animationDelay: `${index * 60}ms` }}
+    >
+      <div className="p-5 sm:p-6">
+        {/* Header row */}
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground shrink-0">
+            <span className={`w-2.5 h-2.5 rounded-full ${dotClass} shrink-0`} />
+            <span className="truncate">{seminar.university}</span>
+          </div>
+          <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-secondary text-secondary-foreground shrink-0">
+            {seminar.type}
+          </span>
+        </div>
+
+        {/* Title */}
+        <h3 className="font-display text-lg font-semibold text-card-foreground leading-snug mb-2 group-hover:text-accent transition-colors duration-200">
+          {seminar.title}
+        </h3>
+
+        {/* Speaker */}
+        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+          <User className="w-4 h-4 shrink-0" />
+          <span>{seminar.speaker}</span>
+          <span className="text-border">·</span>
+          <span className="truncate">{seminar.affiliation}</span>
+        </div>
+
+        {/* Meta */}
+        <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-muted-foreground mb-4">
+          <span className="flex items-center gap-1.5">
+            <Calendar className="w-3.5 h-3.5" />
+            {format(dateObj, "EEE, MMM d")}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5" />
+            {seminar.time}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <MapPin className="w-3.5 h-3.5" />
+            <span className="truncate">{seminar.location}</span>
+          </span>
+        </div>
+
+        {/* Abstract */}
+        <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
+          {seminar.abstract}
+        </p>
+
+        {/* Subject badge */}
+        <div className="mt-4 pt-3 border-t border-border">
+          <span className="text-xs font-medium text-accent">{seminar.subjectArea}</span>
+          <span className="text-xs text-border mx-2">·</span>
+          <span className="text-xs text-muted-foreground">{seminar.department}</span>
+        </div>
+      </div>
+    </article>
+  );
+};
+
+export default SeminarCard;
