@@ -64,10 +64,23 @@ const SeminarCard = ({ seminar, index }: SeminarCardProps) => {
         </p>
 
         {/* Subject badge */}
-        <div className="mt-4 pt-3 border-t border-border">
-          <span className="text-xs font-medium text-accent">{seminar.subjectArea}</span>
-          <span className="text-xs text-border mx-2">·</span>
-          <span className="text-xs text-muted-foreground">{seminar.department}</span>
+        <div className="mt-4 pt-3 border-t border-border flex items-center justify-between">
+          <div>
+            <span className="text-xs font-medium text-accent">{seminar.subjectArea}</span>
+            <span className="text-xs text-border mx-2">·</span>
+            <span className="text-xs text-muted-foreground">{seminar.department}</span>
+          </div>
+          {seminar.sourceUrl && (
+            <a
+              href={seminar.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-muted-foreground hover:text-accent transition-colors"
+              title="View source"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+          )}
         </div>
       </div>
     </article>
