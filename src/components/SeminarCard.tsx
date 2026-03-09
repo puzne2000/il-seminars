@@ -1,4 +1,4 @@
-import { Calendar, Clock, MapPin, User } from "lucide-react";
+import { Calendar, Clock, MapPin, User, ExternalLink } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import type { Seminar } from "@/data/seminars";
 import { universityDotMap } from "@/data/seminars";
