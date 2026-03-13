@@ -1,5 +1,20 @@
 # Architecture Overview
 
+## Local Development
+
+```bash
+./start.sh   # starts Docker, Supabase backend, edge functions server, and Vite frontend
+./stop.sh    # stops all of the above
+```
+
+Frontend runs at `http://localhost:8080`. Supabase Studio at `http://127.0.0.1:54323`. Trigger a scrape with:
+
+```bash
+curl -X POST http://127.0.0.1:54321/functions/v1/scrape-seminars
+```
+
+---
+
 ## Purpose
 
 A web app that aggregates and displays academic seminars held at Israeli universities, with automated scraping of seminar websites.
