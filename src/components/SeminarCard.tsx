@@ -1,4 +1,4 @@
-import { Calendar, Clock, MapPin, User, ExternalLink } from "lucide-react";
+import { Calendar, Clock, MapPin, User } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useState } from "react";
 import type { Seminar } from "@/data/seminars";
@@ -32,8 +32,19 @@ const SeminarCard = ({ seminar, index }: SeminarCardProps) => {
         </div>
 
         {/* Title */}
-        <h3 className="font-display text-lg font-semibold text-card-foreground leading-snug mb-2 group-hover:text-accent transition-colors duration-200">
-          {seminar.title}
+        <h3 className="font-display text-lg font-semibold leading-snug mb-2">
+          {seminar.sourceUrl ? (
+            <a
+              href={seminar.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-card-foreground hover:text-accent transition-colors duration-200"
+            >
+              {seminar.title}
+            </a>
+          ) : (
+            <span className="text-card-foreground group-hover:text-accent transition-colors duration-200">{seminar.title}</span>
+          )}
         </h3>
 
         {/* Speaker */}
@@ -77,17 +88,6 @@ const SeminarCard = ({ seminar, index }: SeminarCardProps) => {
             <span className="text-xs text-border mx-2">·</span>
             <span className="text-xs text-muted-foreground">{seminar.department}</span>
           </div>
-          {seminar.sourceUrl && (
-            <a
-              href={seminar.sourceUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-muted-foreground hover:text-accent transition-colors"
-              title="View source"
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
-          )}
         </div>
       </div>
     </article>
