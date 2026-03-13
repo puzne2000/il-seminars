@@ -1,5 +1,24 @@
 # Architecture Overview
 
+## Deployment and Environment
+
+This project was created with [Lovable](https://lovable.dev), which maintains a **2-way sync with the GitHub repository** (`https://github.com/puzne2000/il-seminars`). Every commit pushed to `main` automatically updates the live Lovable-hosted site. The production Supabase instance is managed by Lovable.
+
+Environment variables are split across two files:
+
+- **`.env`** — production credentials (committed to git). Vite reads this in both dev and production builds, so Lovable's production site picks them up automatically.
+- **`.env.local`** — local development credentials (gitignored via `*.local`). Vite prefers `.env.local` over `.env`, so local dev uses the local Supabase instance without overwriting the committed file.
+
+**Never replace `.env` with local credentials** — doing so would break the production site on the next push.
+
+The local Supabase instance runs in Docker. Its containers are named with the project ID suffix `wzbkmepgwihppoipfarb` (e.g. `supabase_db_wzbkmepgwihppoipfarb`). Direct DB access for debugging:
+
+```bash
+docker exec supabase_db_wzbkmepgwihppoipfarb psql -U postgres
+```
+
+---
+
 ## Local Development
 
 ```bash

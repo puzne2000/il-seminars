@@ -101,9 +101,38 @@ The HTML is split into per-event blocks on `views-row`. Within each block:
 
 ---
 
+## Hebrew University — Physics Seminars
+
+**URL:** `https://phys.huji.ac.il/calendar/upcoming`
+
+**Method:** Direct HTML fetch + individual event page fetch per event
+
+The HUJI Physics site is a Drupal 7 (OpenScholar) site with server-rendered HTML. Events appear as `<article class="node node-event ...">` elements on the listing page.
+
+**Parsing approach:**
+
+The HTML is split into per-event blocks on `<article ... node-event`. Within each block:
+
+- **Title:** `<h2><a href="...">Title</a></h2>`
+- **Speaker:** extracted from the title using the same `Series: Name (Institution)` pattern as HUJI Math — but overridden by the `Lecturer:` line on the individual event page when present (handles cases where the title contains a talk subtitle rather than a speaker name)
+- **Affiliation:** from the parenthesised part of the title, or extracted from `Lecturer: Name - Institution` on the event page
+- **Date:** `date-display-single` span, parsed from `DD/MM/YYYY`
+- **Time:** `time-display-single` span (separate from the date span)
+- **Source URL:** the `href` from the title link
+
+Each event's individual page is always fetched to retrieve:
+- **Location:** `field-name-field-event-location` → `field-item even`
+- **Abstract:** `field-type-text-with-summary` → `field-item even` → `<blockquote>` (present only for some talks)
+
+**Known limitations:**
+- Affiliation often not available when the speaker is listed only by name in the title
+- Abstract is absent for most talks (only present when the organiser filled in the event body)
+
+---
+
 ## Adding a new source
 
-1. Decide whether the site needs Firecrawl (JavaScript-rendered) or can be fetched directly (server-rendered HTML)
-2. Add a scraper/parser function following the existing patterns
-3. Add an entry to `directSources` or `firecrawlSources` in the `Deno.serve` handler
+1. Check whether the site is server-rendered (view source has content) or JavaScript-rendered (view source is mostly empty). All current sources are server-rendered and can be fetched directly.
+2. Add a scraper function following the existing patterns — split HTML into per-event blocks, then extract fields with targeted regex
+3. Add an entry to `directSources` in the `Deno.serve` handler
 4. Test by triggering the function and checking the database
