@@ -239,11 +239,14 @@ Deno.serve(async (req) => {
 
     console.log("Starting seminar scrape...");
 
-    // Scrape HUJI Mathematics Colloquiums
     const sources = [
       {
         url: "https://mathematics.huji.ac.il/calendar/eventss/colloquium",
         parser: parseHujiColloquiums,
+      },
+      {
+        url: "https://www.cs.technion.ac.il/events/",
+        parser: parseTechnionCS,
       },
     ];
 
