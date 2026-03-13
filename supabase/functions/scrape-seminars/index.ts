@@ -49,6 +49,31 @@ async function scrapeWithFirecrawl(url: string): Promise<string> {
   return data.data?.markdown || data.markdown || "";
 }
 
+async function fetchHujiAbstract(eventUrl: string): Promise<string> {
+  try {
+    const response = await fetch(eventUrl, {
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; seminar-scraper/1.0)" },
+    });
+    const html = await response.text();
+    // Drupal 8+ uses field--name-body, Drupal 7 uses field-name-body; both wrap content in field-item(s)
+    const patterns = [
+      /class="field--name-body"[\s\S]*?<p>([\s\S]*?)<\/p>/,
+      /class="field-name-body"[\s\S]*?<p>([\s\S]*?)<\/p>/,
+      /class="field-item(?:\s+even)?">([\s\S]*?)<\/div>/,
+    ];
+    for (const pattern of patterns) {
+      const m = html.match(pattern);
+      if (m) {
+        const text = m[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+        if (text.length > 20) return text;
+      }
+    }
+  } catch (_) {
+    // ignore fetch errors — fall back to placeholder
+  }
+  return "";
+}
+
 async function scrapeHujiColloquiums(pageUrl: string): Promise<ScrapedSeminar[]> {
   const response = await fetch(pageUrl, {
     headers: { "User-Agent": "Mozilla/5.0 (compatible; seminar-scraper/1.0)" },
@@ -98,6 +123,8 @@ async function scrapeHujiColloquiums(pageUrl: string): Promise<ScrapedSeminar[]>
 
     const id = `huji-${date}-${title.substring(0, 30).replace(/\s+/g, "-").replace(/[^a-zA-Z0-9-]/g, "").toLowerCase()}`;
 
+    const fetchedAbstract = await fetchHujiAbstract(sourceUrl);
+
     seminars.push({
       external_id: id,
       title,
@@ -109,7 +136,7 @@ async function scrapeHujiColloquiums(pageUrl: string): Promise<ScrapedSeminar[]>
       date,
       time,
       location: "Manchester Building, Hall 2",
-      abstract: `${title} at the Einstein Institute of Mathematics, Hebrew University.`,
+      abstract: fetchedAbstract || `${title} at the Einstein Institute of Mathematics, Hebrew University.`,
       type: "Colloquium",
       source_url: sourceUrl,
     });

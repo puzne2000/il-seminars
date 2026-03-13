@@ -40,8 +40,11 @@ A single regex matches each `<h2><a>` block and the date span that follows it. F
 - **Location:** hardcoded to `Manchester Building, Hall 2` (standard venue for the colloquium)
 - **Source URL:** the individual event page link from the `href`
 
+**Abstract fetching:**
+
+After parsing the listing page, each event's individual page is fetched and the abstract is extracted from the Drupal body field (`field--name-body` or `field-name-body`, then the first `<p>` inside it). If no abstract is found (network error, or page has no body text), a generic placeholder is stored instead.
+
 **Known limitations:**
-- Abstract is not scraped (not available on the listing page); a generic placeholder is stored instead
 - Location is hardcoded and may be wrong for special events held elsewhere
 
 ---
