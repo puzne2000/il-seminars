@@ -14,7 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      seminars: {
+        Row: {
+          abstract: string | null
+          affiliation: string
+          created_at: string
+          date: string
+          department: string
+          external_id: string | null
+          id: string
+          location: string
+          source_url: string | null
+          speaker: string
+          subject_area: string
+          time: string
+          title: string
+          type: string
+          university: string
+          updated_at: string
+        }
+        Insert: {
+          abstract?: string | null
+          affiliation: string
+          created_at?: string
+          date: string
+          department: string
+          external_id?: string | null
+          id?: string
+          location: string
+          source_url?: string | null
+          speaker: string
+          subject_area: string
+          time: string
+          title: string
+          type: string
+          university: string
+          updated_at?: string
+        }
+        Update: {
+          abstract?: string | null
+          affiliation?: string
+          created_at?: string
+          date?: string
+          department?: string
+          external_id?: string | null
+          id?: string
+          location?: string
+          source_url?: string | null
+          speaker?: string
+          subject_area?: string
+          time?: string
+          title?: string
+          type?: string
+          university?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
