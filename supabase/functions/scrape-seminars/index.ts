@@ -249,7 +249,7 @@ Deno.serve(async (req) => {
 
     const directSources = [
       {
-        url: "https://mathematics.huji.ac.il/calendar/eventss/colloquium",
+        url: "https://mathematics.huji.ac.il/eventss/events-seminars",
         scraper: scrapeHujiColloquiums,
       },
     ];
