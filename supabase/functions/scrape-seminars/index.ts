@@ -118,109 +118,63 @@ async function scrapeHujiColloquiums(pageUrl: string): Promise<ScrapedSeminar[]>
   return seminars;
 }
 
-function parseTechnionCS(markdown: string, pageUrl: string): ScrapedSeminar[] {
+function decodeHtml(s: string): string {
+  return s.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").trim();
+}
+
+async function scrapeTechnionCS(pageUrl: string): Promise<ScrapedSeminar[]> {
+  const response = await fetch(pageUrl, {
+    headers: { "User-Agent": "Mozilla/5.0 (compatible; seminar-scraper/1.0)" },
+  });
+  const html = await response.text();
   const seminars: ScrapedSeminar[] = [];
-  const lines = markdown.split("\n");
 
-  // The page has a "Past Events" section we want to skip
-  const pastIndex = lines.findIndex((l) => /^##\s*Past Events/i.test(l.trim()));
-  const relevantLines = pastIndex > -1 ? lines.slice(0, pastIndex) : lines;
+  // Split into per-event blocks on events_header
+  const blocks = html.split(/(?=<div class='events_header'>)/);
 
-  let i = 0;
-  while (i < relevantLines.length) {
-    const line = relevantLines[i].trim();
+  for (const block of blocks) {
+    const titleMatch = block.match(/class='events_header'>(.*?)<\/div>/);
+    if (!titleMatch) continue;
+    const title = decodeHtml(titleMatch[1].replace(/<[^>]+>/g, ""));
+    if (!title) continue;
 
-    // Skip navigation, images, empty lines, year links, and known UI text
-    const isNavText = /^(Events|Seminars|Home|Menu|Search|About|Contact|News|Calendar|Archive|Filter|Sort|Back|Next|Previous|Page)$/i.test(line);
-    if (!line || isNavText || line.startsWith("![") || line.startsWith("[") || line.startsWith("#") || line.startsWith("-") || line.startsWith("\\[") || line.startsWith("[![")) {
-      i++;
-      continue;
-    }
+    // Extract all ev_r_col values within this block (speaker, date, location in order)
+    const cols = [...block.matchAll(/class='ev_r_col'>([\s\S]*?)<\/div>/g)]
+      .map(m => decodeHtml(m[1].replace(/<[^>]+>/g, "")));
 
-    // Potential title line - look ahead for speaker/date/location pattern
-    const title = line;
+    // Find the date column (contains day.month.year pattern)
+    const dateColIdx = cols.findIndex(c => /\d{1,2}\.\d{1,2}\.\d{4}/.test(c));
+    if (dateColIdx === -1) continue;
 
-    // Search ahead for date pattern within next 10 lines
-    let speaker = "";
-    let dateStr = "";
-    let timeStr = "";
-    let location = "";
-    let abstract = "";
-    let sourceUrl = "";
-    let found = false;
+    const dateRaw = cols[dateColIdx];
+    const speaker = cols[dateColIdx - 1] || "TBA";
+    const location = cols[dateColIdx + 1] || "Taub Building";
 
-    for (let j = i + 1; j < Math.min(i + 15, relevantLines.length); j++) {
-      const ahead = relevantLines[j].trim();
+    const dateMatch = dateRaw.match(/(\d{1,2})\.(\d{1,2})\.(\d{4}),?\s+(\d{1,2}:\d{2})/);
+    if (!dateMatch) continue;
+    const [, day, month, year, time] = dateMatch;
+    const date = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
 
-      // Date line: "Wednesday, 18.03.2026, 14:00"
-      const dateLineMatch = ahead.match(
-        /(?:Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday),?\s+(\d{1,2})\.(\d{1,2})\.(\d{4}),?\s+(\d{1,2}:\d{2})/i
-      );
-      if (dateLineMatch) {
-        const [, day, month, year, time] = dateLineMatch;
-        dateStr = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
-        timeStr = time;
-        found = true;
-        continue;
-      }
+    const abstractMatch = block.match(/class='events_txt_part'>([\s\S]*?)<\/div>/);
+    const abstract = abstractMatch ? decodeHtml(abstractMatch[1].replace(/<[^>]+>/g, "")) : "";
 
-      // Speaker line (non-empty, not an image, not a date, before location)
-      if (!ahead.startsWith("![") && !ahead.startsWith("[") && !ahead.startsWith("\\[") && ahead.length > 2 && ahead.length < 100 && !speaker && !dateStr) {
-        speaker = ahead;
-        // Extract affiliation in parentheses
-        const affMatch = speaker.match(/\(([^)]+)\)/);
-        if (affMatch) {
-          speaker = speaker.replace(/\s*\([^)]+\)/, "").trim();
-        }
-        continue;
-      }
+    const id = `technion-cs-${date}-${title.substring(0, 30).replace(/\s+/g, "-").replace(/[^a-zA-Z0-9-]/g, "").toLowerCase()}`;
 
-      // Location line (after date was found, non-empty text)
-      if (found && !location && !ahead.startsWith("![") && ahead.length > 1 && ahead.length < 150) {
-        // Could be location with Zoom link
-        location = ahead.replace(/\[Zoom\]\([^)]+\)/g, "& Zoom").replace(/[[\]]/g, "").trim();
-        continue;
-      }
-
-      // Abstract (longer text after location)
-      if (found && location && !ahead.startsWith("![") && !ahead.startsWith("\\[") && ahead.length > 50) {
-        abstract = ahead;
-        continue;
-      }
-
-      // Source URL
-      const urlMatch = ahead.match(/\[Full version\]\(([^)]+)\)/);
-      if (urlMatch) {
-        sourceUrl = urlMatch[1];
-        break;
-      }
-    }
-
-    if (found && dateStr && title.length > 5 && title.length < 200) {
-      const id = `technion-cs-${dateStr}-${title
-        .substring(0, 30)
-        .replace(/\s+/g, "-")
-        .replace(/[^a-zA-Z0-9-]/g, "")
-        .toLowerCase()}`;
-
-      seminars.push({
-        external_id: id,
-        title,
-        speaker: speaker || "TBA",
-        affiliation: "Technion",
-        university: "Technion",
-        department: "Taub Faculty of Computer Science",
-        subject_area: "Computer Science",
-        date: dateStr,
-        time: timeStr || "12:00",
-        location: location || "Taub Building",
-        abstract: abstract || `${title} - Talk at the Taub Faculty of Computer Science, Technion.`,
-        type: "Seminar",
-        source_url: sourceUrl ? (sourceUrl.startsWith("http") ? sourceUrl : `https://www.cs.technion.ac.il${sourceUrl.startsWith("/") ? "" : "/"}${sourceUrl}`) : pageUrl,
-      });
-    }
-
-    i++;
+    seminars.push({
+      external_id: id,
+      title,
+      speaker,
+      affiliation: "Technion",
+      university: "Technion",
+      department: "Taub Faculty of Computer Science",
+      subject_area: "Computer Science",
+      date,
+      time,
+      location,
+      abstract: abstract || `${title} - Talk at the Taub Faculty of Computer Science, Technion.`,
+      type: "Seminar",
+      source_url: pageUrl,
+    });
   }
 
   return seminars;
@@ -240,17 +194,14 @@ Deno.serve(async (req) => {
 
     console.log("Starting seminar scrape...");
 
-    const firecrawlSources = [
-      {
-        url: "https://www.cs.technion.ac.il/events/",
-        parser: parseTechnionCS,
-      },
-    ];
-
     const directSources = [
       {
         url: "https://mathematics.huji.ac.il/eventss/events-seminars",
         scraper: scrapeHujiColloquiums,
+      },
+      {
+        url: "https://www.cs.technion.ac.il/events/",
+        scraper: scrapeTechnionCS,
       },
     ];
 
@@ -261,32 +212,6 @@ Deno.serve(async (req) => {
       try {
         console.log(`Scraping (direct): ${source.url}`);
         const seminars = (await source.scraper(source.url)).map((s) => ({ ...s, last_scraped_at: scrapeTime }));
-        console.log(`Parsed ${seminars.length} seminars`);
-
-        if (seminars.length > 0) {
-          const { error } = await supabase
-            .from("seminars")
-            .upsert(seminars, { onConflict: "external_id" });
-
-          if (error) {
-            console.error(`Error upserting seminars:`, error);
-          } else {
-            totalUpserted += seminars.length;
-          }
-        }
-      } catch (err) {
-        console.error(`Error scraping ${source.url}:`, err);
-      }
-    }
-
-    // Firecrawl sources
-    for (const source of firecrawlSources) {
-      try {
-        console.log(`Scraping (firecrawl): ${source.url}`);
-        const markdown = await scrapeWithFirecrawl(source.url);
-        console.log(`Got ${markdown.length} chars of markdown`);
-
-        const seminars = source.parser(markdown, source.url).map((s) => ({ ...s, last_scraped_at: scrapeTime }));
         console.log(`Parsed ${seminars.length} seminars`);
 
         if (seminars.length > 0) {

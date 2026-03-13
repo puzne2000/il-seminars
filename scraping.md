@@ -50,28 +50,25 @@ A single regex matches each `<h2><a>` block and the date span that follows it. F
 
 **URL:** `https://www.cs.technion.ac.il/events/`
 
-**Method:** Firecrawl (converts the page to markdown)
+**Method:** Direct HTML fetch
 
-The Technion CS events page is passed through the Firecrawl API, which renders the page and returns it as clean markdown. This is needed because the page is JavaScript-rendered.
+The Technion CS events page is server-rendered, so all content is available in the raw HTML without needing a JavaScript-capable browser.
 
 **Parsing approach:**
 
-The markdown is split into lines and processed sequentially. The parser skips navigation elements, images, headings, and known UI strings (e.g. "Events", "Home"). For each remaining line it treats it as a potential talk title and looks ahead up to 15 lines for a date pattern to confirm it.
+The HTML is split into per-event blocks on the `events_header` class. Within each block, fields map directly to CSS classes:
 
-Fields are identified as follows:
+- **Title:** `events_header` div
+- **Speaker, Date, Location:** three consecutive `ev_r_col` divs; the date column is identified by its `DD.MM.YYYY` pattern, speaker is the column before it, location the column after
+- **Date/Time:** parsed from `Wednesday, 18.03.2026, 14:00` format
+- **Abstract:** `events_txt_part` div
+- **Source URL:** falls back to the events listing page URL (individual event links not used)
 
-- **Title:** the plain text line preceding the date
-- **Speaker:** the line immediately before the date line (short, plain text); affiliation is stripped from parentheses if present
-- **Date/Time:** matched by pattern `Wednesday, 18.03.2026, 14:00`
-- **Location:** first non-empty line after the date
-- **Abstract:** longer text block (>50 chars) appearing after the location
-- **Source URL:** extracted from a `[Full version](...)` markdown link if present; otherwise falls back to the events listing page URL
-- Everything after a `## Past Events` heading is ignored
+HTML entities (`&amp;`, etc.) are decoded before storing.
 
 **Known limitations:**
-- The parser is heuristic — changes to the page layout may cause fields to be misidentified
-- Affiliation is not reliably extracted and defaults to `Technion`
-- Abstract is only captured when the page includes one inline; many entries fall back to a generic placeholder
+- Affiliation is not extracted and defaults to `Technion`
+- Source URL links to the listing page, not individual event pages
 
 ---
 
