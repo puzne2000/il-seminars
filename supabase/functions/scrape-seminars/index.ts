@@ -49,9 +49,6 @@ async function scrapeWithFirecrawl(url: string): Promise<string> {
 
 function parseHujiColloquiums(markdown: string): ScrapedSeminar[] {
   const seminars: ScrapedSeminar[] = [];
-
-  // Match patterns like date lines and event titles from the HUJI calendar
-  // The HUJI calendar page lists events with dates, titles, and speaker info
   const lines = markdown.split("\n").filter((l) => l.trim());
 
   let currentDate = "";
@@ -59,25 +56,18 @@ function parseHujiColloquiums(markdown: string): ScrapedSeminar[] {
   let currentUrl = "";
 
   for (const line of lines) {
-    // Match date patterns like "Thu, 19/03/2026" or "2026-03-19"
-    const dateMatch = line.match(
-      /(\d{1,2})[\/\.](\d{1,2})[\/\.](\d{4})/
-    );
+    const dateMatch = line.match(/(\d{1,2})[\/\.](\d{1,2})[\/\.](\d{4})/);
     if (dateMatch) {
       const [, day, month, year] = dateMatch;
       currentDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
     }
 
-    // Match ISO dates
     const isoMatch = line.match(/(\d{4})-(\d{2})-(\d{2})/);
     if (isoMatch) {
       currentDate = isoMatch[0];
     }
 
-    // Match event titles (usually in links or headers)
-    const titleMatch = line.match(
-      /\[([^\]]+)\]\(([^)]+)\)/
-    );
+    const titleMatch = line.match(/\[([^\]]+)\]\(([^)]+)\)/);
     if (titleMatch) {
       currentTitle = titleMatch[1].trim();
       currentUrl = titleMatch[2].trim();
@@ -86,7 +76,6 @@ function parseHujiColloquiums(markdown: string): ScrapedSeminar[] {
       }
     }
 
-    // Match colloquium/seminar keywords
     if (
       currentTitle &&
       currentDate &&
@@ -94,9 +83,7 @@ function parseHujiColloquiums(markdown: string): ScrapedSeminar[] {
         currentTitle.toLowerCase().includes("seminar") ||
         currentTitle.toLowerCase().includes("lecture"))
     ) {
-      // Extract speaker name if present in title
       let speaker = "TBA";
-      let affiliation = "TBA";
       const speakerMatch = currentTitle.match(
         /(?:Colloquium|Seminar|Lecture)[:\s]+(.+)/i
       );
@@ -113,7 +100,7 @@ function parseHujiColloquiums(markdown: string): ScrapedSeminar[] {
         external_id: id,
         title: currentTitle,
         speaker,
-        affiliation,
+        affiliation: "TBA",
         university: "Hebrew University",
         department: "Einstein Institute of Mathematics",
         subject_area: "Mathematics",
@@ -125,10 +112,116 @@ function parseHujiColloquiums(markdown: string): ScrapedSeminar[] {
         source_url: currentUrl || undefined,
       });
 
-      // Reset for next event
       currentTitle = "";
       currentUrl = "";
     }
+  }
+
+  return seminars;
+}
+
+function parseTechnionCS(markdown: string): ScrapedSeminar[] {
+  const seminars: ScrapedSeminar[] = [];
+  const lines = markdown.split("\n");
+
+  // The page has a "Past Events" section we want to skip
+  const pastIndex = lines.findIndex((l) => /^##\s*Past Events/i.test(l.trim()));
+  const relevantLines = pastIndex > -1 ? lines.slice(0, pastIndex) : lines;
+
+  let i = 0;
+  while (i < relevantLines.length) {
+    const line = relevantLines[i].trim();
+
+    // Skip navigation, images, empty lines, year links
+    if (!line || line.startsWith("![") || line.startsWith("[") || line.startsWith("#") || line.startsWith("-") || line.startsWith("\\[") || line.startsWith("[![")) {
+      i++;
+      continue;
+    }
+
+    // Potential title line - look ahead for speaker/date/location pattern
+    const title = line;
+
+    // Search ahead for date pattern within next 10 lines
+    let speaker = "";
+    let dateStr = "";
+    let timeStr = "";
+    let location = "";
+    let abstract = "";
+    let sourceUrl = "";
+    let found = false;
+
+    for (let j = i + 1; j < Math.min(i + 15, relevantLines.length); j++) {
+      const ahead = relevantLines[j].trim();
+
+      // Date line: "Wednesday, 18.03.2026, 14:00"
+      const dateLineMatch = ahead.match(
+        /(?:Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday),?\s+(\d{1,2})\.(\d{1,2})\.(\d{4}),?\s+(\d{1,2}:\d{2})/i
+      );
+      if (dateLineMatch) {
+        const [, day, month, year, time] = dateLineMatch;
+        dateStr = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+        timeStr = time;
+        found = true;
+        continue;
+      }
+
+      // Speaker line (non-empty, not an image, not a date, before location)
+      if (!ahead.startsWith("![") && !ahead.startsWith("[") && !ahead.startsWith("\\[") && ahead.length > 2 && ahead.length < 100 && !speaker && !dateStr) {
+        speaker = ahead;
+        // Extract affiliation in parentheses
+        const affMatch = speaker.match(/\(([^)]+)\)/);
+        if (affMatch) {
+          speaker = speaker.replace(/\s*\([^)]+\)/, "").trim();
+        }
+        continue;
+      }
+
+      // Location line (after date was found, non-empty text)
+      if (found && !location && !ahead.startsWith("![") && ahead.length > 1 && ahead.length < 150) {
+        // Could be location with Zoom link
+        location = ahead.replace(/\[Zoom\]\([^)]+\)/g, "& Zoom").replace(/[[\]]/g, "").trim();
+        continue;
+      }
+
+      // Abstract (longer text after location)
+      if (found && location && !ahead.startsWith("![") && !ahead.startsWith("\\[") && ahead.length > 50) {
+        abstract = ahead;
+        continue;
+      }
+
+      // Source URL
+      const urlMatch = ahead.match(/\[Full version\]\(([^)]+)\)/);
+      if (urlMatch) {
+        sourceUrl = urlMatch[1];
+        break;
+      }
+    }
+
+    if (found && dateStr && title.length > 5 && title.length < 200) {
+      const id = `technion-cs-${dateStr}-${title
+        .substring(0, 30)
+        .replace(/\s+/g, "-")
+        .replace(/[^a-zA-Z0-9-]/g, "")
+        .toLowerCase()}`;
+
+      seminars.push({
+        external_id: id,
+        title,
+        speaker: speaker || "TBA",
+        affiliation: "Technion",
+        university: "Technion",
+        department: "Taub Faculty of Computer Science",
+        subject_area: "Computer Science",
+        date: dateStr,
+        time: timeStr || "12:00",
+        location: location || "Taub Building",
+        abstract: abstract || `${title} - Talk at the Taub Faculty of Computer Science, Technion.`,
+        type: "Seminar",
+        source_url: sourceUrl ? `https://www.cs.technion.ac.il${sourceUrl.startsWith("/") ? "" : "/"}${sourceUrl}` : undefined,
+      });
+    }
+
+    i++;
   }
 
   return seminars;
