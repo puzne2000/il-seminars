@@ -20,6 +20,7 @@ interface ScrapedSeminar {
   abstract: string;
   type: "Seminar" | "Colloquium";
   source_url?: string;
+  last_scraped_at: string;
 }
 
 async function scrapeWithFirecrawl(url: string): Promise<string> {
@@ -48,80 +49,76 @@ async function scrapeWithFirecrawl(url: string): Promise<string> {
   return data.data?.markdown || data.markdown || "";
 }
 
-function parseHujiColloquiums(markdown: string): ScrapedSeminar[] {
+async function scrapeHujiColloquiums(pageUrl: string): Promise<ScrapedSeminar[]> {
+  const response = await fetch(pageUrl, {
+    headers: { "User-Agent": "Mozilla/5.0 (compatible; seminar-scraper/1.0)" },
+  });
+  const html = await response.text();
   const seminars: ScrapedSeminar[] = [];
-  const lines = markdown.split("\n").filter((l) => l.trim());
 
-  let currentDate = "";
-  let currentTitle = "";
-  let currentUrl = "";
+  // Each event is an <h2><a href="URL">Title</a></h2> followed by a date span
+  const eventPattern = /<h2[^>]*>\s*<a\s+href="([^"]+)"[^>]*>(.*?)<\/a>\s*<\/h2>[\s\S]*?date-display-single">(.*?)</g;
+  let match;
 
-  for (const line of lines) {
-    const dateMatch = line.match(/(\d{1,2})[\/\.](\d{1,2})[\/\.](\d{4})/);
-    if (dateMatch) {
-      const [, day, month, year] = dateMatch;
-      currentDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
-    }
+  while ((match = eventPattern.exec(html)) !== null) {
+    const [, href, rawTitle, rawDate] = match;
+    const title = rawTitle.replace(/<[^>]+>/g, "").trim();
+    const dateRaw = rawDate.trim(); // e.g. "Thu, 26/03/2026"
 
-    const isoMatch = line.match(/(\d{4})-(\d{2})-(\d{2})/);
-    if (isoMatch) {
-      currentDate = isoMatch[0];
-    }
+    if (!title || !dateRaw) continue;
 
-    const titleMatch = line.match(/\[([^\]]+)\]\(([^)]+)\)/);
-    if (titleMatch) {
-      currentTitle = titleMatch[1].trim();
-      currentUrl = titleMatch[2].trim();
-      if (!currentUrl.startsWith("http")) {
-        currentUrl = `https://mathematics.huji.ac.il${currentUrl}`;
+    // Parse date "Thu, 26/03/2026" or "Thu, 26/03/2026 - 14:30"
+    const dateMatch = dateRaw.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (!dateMatch) continue;
+    const [, day, month, year] = dateMatch;
+    const date = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+
+    // Time may appear in the date string
+    const timeMatch = dateRaw.match(/(\d{1,2}:\d{2})/);
+    const time = timeMatch ? timeMatch[1] : "14:30";
+
+    // Speaker and affiliation from title pattern "Colloquium: Name (Institution)"
+    let speaker = "TBA";
+    let affiliation = "TBA";
+    const speakerMatch = title.match(/(?:Colloquium|Seminar|Lecture)[:\s]+(.+)/i);
+    if (speakerMatch) {
+      const speakerPart = speakerMatch[1].trim();
+      const affMatch = speakerPart.match(/^(.*?)\s*\(([^)]+)\)\s*$/);
+      if (affMatch) {
+        speaker = affMatch[1].trim() || speakerPart;
+        affiliation = affMatch[2].trim();
+      } else {
+        speaker = speakerPart;
       }
     }
 
-    if (
-      currentTitle &&
-      currentDate &&
-      (currentTitle.toLowerCase().includes("colloquium") ||
-        currentTitle.toLowerCase().includes("seminar") ||
-        currentTitle.toLowerCase().includes("lecture"))
-    ) {
-      let speaker = "TBA";
-      const speakerMatch = currentTitle.match(
-        /(?:Colloquium|Seminar|Lecture)[:\s]+(.+)/i
-      );
-      if (speakerMatch) {
-        speaker = speakerMatch[1].trim();
-      }
+    const sourceUrl = href.startsWith("http")
+      ? href
+      : `https://mathematics.huji.ac.il${href}`;
 
-      const id = `huji-scraped-${currentDate}-${currentTitle
-        .substring(0, 20)
-        .replace(/\s+/g, "-")
-        .toLowerCase()}`;
+    const id = `huji-${date}-${title.substring(0, 30).replace(/\s+/g, "-").replace(/[^a-zA-Z0-9-]/g, "").toLowerCase()}`;
 
-      seminars.push({
-        external_id: id,
-        title: currentTitle,
-        speaker,
-        affiliation: "TBA",
-        university: "Hebrew University",
-        department: "Einstein Institute of Mathematics",
-        subject_area: "Mathematics",
-        date: currentDate,
-        time: "14:30",
-        location: "Manchester Building, Hall 2",
-        abstract: `${currentTitle} at the Einstein Institute of Mathematics, Hebrew University.`,
-        type: "Colloquium",
-        source_url: currentUrl || undefined,
-      });
-
-      currentTitle = "";
-      currentUrl = "";
-    }
+    seminars.push({
+      external_id: id,
+      title,
+      speaker,
+      affiliation,
+      university: "Hebrew University",
+      department: "Einstein Institute of Mathematics",
+      subject_area: "Mathematics",
+      date,
+      time,
+      location: "Manchester Building, Hall 2",
+      abstract: `${title} at the Einstein Institute of Mathematics, Hebrew University.`,
+      type: "Colloquium",
+      source_url: sourceUrl,
+    });
   }
 
   return seminars;
 }
 
-function parseTechnionCS(markdown: string): ScrapedSeminar[] {
+function parseTechnionCS(markdown: string, pageUrl: string): ScrapedSeminar[] {
   const seminars: ScrapedSeminar[] = [];
   const lines = markdown.split("\n");
 
@@ -133,8 +130,9 @@ function parseTechnionCS(markdown: string): ScrapedSeminar[] {
   while (i < relevantLines.length) {
     const line = relevantLines[i].trim();
 
-    // Skip navigation, images, empty lines, year links
-    if (!line || line.startsWith("![") || line.startsWith("[") || line.startsWith("#") || line.startsWith("-") || line.startsWith("\\[") || line.startsWith("[![")) {
+    // Skip navigation, images, empty lines, year links, and known UI text
+    const isNavText = /^(Events|Seminars|Home|Menu|Search|About|Contact|News|Calendar|Archive|Filter|Sort|Back|Next|Previous|Page)$/i.test(line);
+    if (!line || isNavText || line.startsWith("![") || line.startsWith("[") || line.startsWith("#") || line.startsWith("-") || line.startsWith("\\[") || line.startsWith("[![")) {
       i++;
       continue;
     }
@@ -218,7 +216,7 @@ function parseTechnionCS(markdown: string): ScrapedSeminar[] {
         location: location || "Taub Building",
         abstract: abstract || `${title} - Talk at the Taub Faculty of Computer Science, Technion.`,
         type: "Seminar",
-        source_url: sourceUrl ? `https://www.cs.technion.ac.il${sourceUrl.startsWith("/") ? "" : "/"}${sourceUrl}` : undefined,
+        source_url: sourceUrl ? (sourceUrl.startsWith("http") ? sourceUrl : `https://www.cs.technion.ac.il${sourceUrl.startsWith("/") ? "" : "/"}${sourceUrl}`) : pageUrl,
       });
     }
 
@@ -238,28 +236,31 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    const scrapeTime = new Date().toISOString();
+
     console.log("Starting seminar scrape...");
 
-    const sources = [
-      {
-        url: "https://mathematics.huji.ac.il/calendar/eventss/colloquium",
-        parser: parseHujiColloquiums,
-      },
+    const firecrawlSources = [
       {
         url: "https://www.cs.technion.ac.il/events/",
         parser: parseTechnionCS,
       },
     ];
 
+    const directSources = [
+      {
+        url: "https://mathematics.huji.ac.il/calendar/eventss/colloquium",
+        scraper: scrapeHujiColloquiums,
+      },
+    ];
+
     let totalUpserted = 0;
 
-    for (const source of sources) {
+    // Direct HTML sources
+    for (const source of directSources) {
       try {
-        console.log(`Scraping: ${source.url}`);
-        const markdown = await scrapeWithFirecrawl(source.url);
-        console.log(`Got ${markdown.length} chars of markdown`);
-
-        const seminars = source.parser(markdown);
+        console.log(`Scraping (direct): ${source.url}`);
+        const seminars = (await source.scraper(source.url)).map((s) => ({ ...s, last_scraped_at: scrapeTime }));
         console.log(`Parsed ${seminars.length} seminars`);
 
         if (seminars.length > 0) {
@@ -276,6 +277,46 @@ Deno.serve(async (req) => {
       } catch (err) {
         console.error(`Error scraping ${source.url}:`, err);
       }
+    }
+
+    // Firecrawl sources
+    for (const source of firecrawlSources) {
+      try {
+        console.log(`Scraping (firecrawl): ${source.url}`);
+        const markdown = await scrapeWithFirecrawl(source.url);
+        console.log(`Got ${markdown.length} chars of markdown`);
+
+        const seminars = source.parser(markdown, source.url).map((s) => ({ ...s, last_scraped_at: scrapeTime }));
+        console.log(`Parsed ${seminars.length} seminars`);
+
+        if (seminars.length > 0) {
+          const { error } = await supabase
+            .from("seminars")
+            .upsert(seminars, { onConflict: "external_id" });
+
+          if (error) {
+            console.error(`Error upserting seminars:`, error);
+          } else {
+            totalUpserted += seminars.length;
+          }
+        }
+      } catch (err) {
+        console.error(`Error scraping ${source.url}:`, err);
+      }
+    }
+
+    // Delete seminars not seen by the scraper in over a week
+    const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const { error: deleteError, count: deleteCount } = await supabase
+      .from("seminars")
+      .delete({ count: "exact" })
+      .lt("last_scraped_at", cutoff)
+      .not("last_scraped_at", "is", null);
+
+    if (deleteError) {
+      console.error("Error deleting stale seminars:", deleteError);
+    } else {
+      console.log(`Deleted ${deleteCount ?? 0} stale seminars.`);
     }
 
     console.log(`Scrape complete. Upserted ${totalUpserted} seminars.`);

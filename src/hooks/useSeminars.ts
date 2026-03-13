@@ -6,9 +6,14 @@ export function useSeminars() {
   return useQuery({
     queryKey: ["seminars"],
     queryFn: async (): Promise<Seminar[]> => {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const cutoff = yesterday.toISOString().split("T")[0]; // YYYY-MM-DD
+
       const { data, error } = await supabase
         .from("seminars")
         .select("*")
+        .gte("date", cutoff)
         .order("date", { ascending: true });
 
       if (error) throw error;
