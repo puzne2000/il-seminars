@@ -49,30 +49,6 @@ async function scrapeWithFirecrawl(url: string): Promise<string> {
   return data.data?.markdown || data.markdown || "";
 }
 
-async function fetchHujiAbstract(eventUrl: string): Promise<string> {
-  try {
-    const response = await fetch(eventUrl, {
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; seminar-scraper/1.0)" },
-    });
-    const html = await response.text();
-    // Drupal 8+ uses field--name-body, Drupal 7 uses field-name-body; both wrap content in field-item(s)
-    const patterns = [
-      /class="field--name-body"[\s\S]*?<p>([\s\S]*?)<\/p>/,
-      /class="field-name-body"[\s\S]*?<p>([\s\S]*?)<\/p>/,
-      /class="field-item(?:\s+even)?">([\s\S]*?)<\/div>/,
-    ];
-    for (const pattern of patterns) {
-      const m = html.match(pattern);
-      if (m) {
-        const text = m[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-        if (text.length > 20) return text;
-      }
-    }
-  } catch (_) {
-    // ignore fetch errors — fall back to placeholder
-  }
-  return "";
-}
 
 async function scrapeHujiColloquiums(pageUrl: string): Promise<ScrapedSeminar[]> {
   const response = await fetch(pageUrl, {
@@ -87,7 +63,7 @@ async function scrapeHujiColloquiums(pageUrl: string): Promise<ScrapedSeminar[]>
 
   while ((match = eventPattern.exec(html)) !== null) {
     const [, href, rawTitle, rawDate] = match;
-    const title = rawTitle.replace(/<[^>]+>/g, "").trim();
+    const title = decodeHtml(rawTitle.replace(/<[^>]+>/g, ""));
     const dateRaw = rawDate.trim(); // e.g. "Thu, 26/03/2026"
 
     if (!title || !dateRaw) continue;
@@ -102,12 +78,14 @@ async function scrapeHujiColloquiums(pageUrl: string): Promise<ScrapedSeminar[]>
     const timeMatch = dateRaw.match(/(\d{1,2}:\d{2})/);
     const time = timeMatch ? timeMatch[1] : "14:30";
 
-    // Speaker and affiliation from title pattern "Colloquium: Name (Institution)"
+    // Speaker and affiliation from title pattern "Series: Name (Institution)" or "Series - Name (Institution)"
     let speaker = "TBA";
     let affiliation = "TBA";
-    const speakerMatch = title.match(/(?:Colloquium|Seminar|Lecture)[:\s]+(.+)/i);
+    const speakerMatch = title.match(/^.*?[:\-–]\s*(.+)/);
     if (speakerMatch) {
-      const speakerPart = speakerMatch[1].trim();
+      // If the captured part still contains a colon (e.g. "Zhukovitsky Lecture: Elad Kosloff"), take after the last colon
+      const raw = speakerMatch[1].trim();
+      const speakerPart = raw.includes(":") ? raw.slice(raw.lastIndexOf(":") + 1).trim() : raw;
       const affMatch = speakerPart.match(/^(.*?)\s*\(([^)]+)\)\s*$/);
       if (affMatch) {
         speaker = affMatch[1].trim() || speakerPart;
@@ -123,8 +101,6 @@ async function scrapeHujiColloquiums(pageUrl: string): Promise<ScrapedSeminar[]>
 
     const id = `huji-${date}-${title.substring(0, 30).replace(/\s+/g, "-").replace(/[^a-zA-Z0-9-]/g, "").toLowerCase()}`;
 
-    const fetchedAbstract = await fetchHujiAbstract(sourceUrl);
-
     seminars.push({
       external_id: id,
       title,
@@ -136,7 +112,7 @@ async function scrapeHujiColloquiums(pageUrl: string): Promise<ScrapedSeminar[]>
       date,
       time,
       location: "Manchester Building, Hall 2",
-      abstract: fetchedAbstract || `${title} at the Einstein Institute of Mathematics, Hebrew University.`,
+      abstract: "",
       type: "Colloquium",
       source_url: sourceUrl,
     });
@@ -198,9 +174,107 @@ async function scrapeTechnionCS(pageUrl: string): Promise<ScrapedSeminar[]> {
       date,
       time,
       location,
-      abstract: abstract || `${title} - Talk at the Taub Faculty of Computer Science, Technion.`,
+      abstract: abstract,
       type: "Seminar",
       source_url: pageUrl,
+    });
+  }
+
+  return seminars;
+}
+
+const MONTH_NAMES: Record<string, string> = {
+  january: "01", february: "02", march: "03", april: "04",
+  may: "05", june: "06", july: "07", august: "08",
+  september: "09", october: "10", november: "11", december: "12",
+};
+
+async function scrapeWeizmann(pageUrl: string): Promise<ScrapedSeminar[]> {
+  const response = await fetch(pageUrl, {
+    headers: { "User-Agent": "Mozilla/5.0 (compatible; seminar-scraper/1.0)" },
+  });
+  const html = await response.text();
+  const seminars: ScrapedSeminar[] = [];
+
+  // Only include lecture/seminar/colloquium event types — skip conference, workshop, etc.
+  const INCLUDED_TYPES = new Set(["lecture", "seminar", "colloquium"]);
+
+  const blocks = html.split(/(?=<li class="views-row )/);
+
+  for (const block of blocks) {
+    // Event type (lecture / seminar / conference / etc.)
+    const typeMatch = block.match(/<span class="event-type">\s*<span class="([^"]+)">/);
+    if (!typeMatch) continue;
+    const eventTypeClass = typeMatch[1].toLowerCase();
+    if (!INCLUDED_TYPES.has(eventTypeClass)) continue;
+
+    // Individual event ID and URL
+    const idMatch = block.match(/\/pages\/event\/(\d+)\/ics/);
+    if (!idMatch) continue;
+    const eventId = idMatch[1];
+    const sourceUrl = `https://www.weizmann.ac.il/pages/event/${eventId}`;
+
+    // Date: day, month+year are in separate spans
+    const dayMatch = block.match(/start-date-day[^>]*>[\s\S]*?date-display-single">([\d]+)</);
+    const monthYearMatch = block.match(/start-date-month[^>]*>[\s\S]*?date-display-single">([^<]+)</);
+    if (!dayMatch || !monthYearMatch) continue;
+
+    const day = dayMatch[1].padStart(2, "0");
+    const monthYearStr = monthYearMatch[1].trim(); // e.g. "March 2026"
+    const [monthName, yearStr] = monthYearStr.split(" ");
+    const month = MONTH_NAMES[monthName.toLowerCase()];
+    if (!month || !yearStr) continue;
+    const date = `${yearStr}-${month}-${day}`;
+
+    // Time (take start time only)
+    const timeMatch = block.match(/event-time-wrapper">\s*([\d]{1,2}:[\d]{2})/);
+    const time = timeMatch ? timeMatch[1] : "TBA";
+
+    // H3 event title (seminar series / department label)
+    const h3Match = block.match(/event-title-wrapper">([\s\S]*?)<\/h3>/);
+    const seriesTitle = h3Match ? h3Match[1].replace(/<[^>]+>/g, "").trim() : "";
+
+    // Talk subtitle (actual talk title) — preferred as the seminar title
+    const subtitleMatch = block.match(/views-label-field-subtitle-english[\s\S]*?<div class="field-content">([\s\S]*?)<\/div>/);
+    const subtitle = subtitleMatch ? decodeHtml(subtitleMatch[1].replace(/<[^>]+>/g, "").trim()) : "";
+
+    const title = subtitle || seriesTitle;
+    if (!title) continue;
+
+    // Location
+    const locationMatch = block.match(/event-location-wrapper">([\s\S]*?)<\/div>/);
+    const location = locationMatch ? locationMatch[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim() : "Weizmann Institute";
+
+    // Lecturer / Speaker (take text before first <br> or the full td content)
+    const lecturerMatch = block.match(/views-label-field-lecturer-english[\s\S]*?<\/th><td>([\s\S]*?)<\/td>/);
+    let speaker = "TBA";
+    if (lecturerMatch) {
+      const raw = lecturerMatch[1].split(/<br\s*\/?>/i)[0];
+      speaker = raw.replace(/<[^>]+>/g, "").trim() || "TBA";
+    }
+
+    // Abstract
+    const abstractMatch = block.match(/event-abstract-wrapper">([\s\S]*?)<\/div>/);
+    const abstract = abstractMatch
+      ? decodeHtml(abstractMatch[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim())
+      : "";
+
+    const type: "Seminar" | "Colloquium" = eventTypeClass === "colloquium" ? "Colloquium" : "Seminar";
+
+    seminars.push({
+      external_id: `weizmann-${eventId}`,
+      title,
+      speaker,
+      affiliation: "Weizmann Institute of Science",
+      university: "Weizmann Institute of Science",
+      department: seriesTitle || "Weizmann Institute of Science",
+      subject_area: "Natural Sciences",
+      date,
+      time,
+      location,
+      abstract,
+      type,
+      source_url: sourceUrl,
     });
   }
 
@@ -229,6 +303,10 @@ Deno.serve(async (req) => {
       {
         url: "https://www.cs.technion.ac.il/events/",
         scraper: scrapeTechnionCS,
+      },
+      {
+        url: "https://www.weizmann.ac.il/pages/calendar",
+        scraper: scrapeWeizmann,
       },
     ];
 

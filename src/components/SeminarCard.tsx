@@ -1,5 +1,6 @@
 import { Calendar, Clock, MapPin, User, ExternalLink } from "lucide-react";
 import { format, parseISO } from "date-fns";
+import { useState } from "react";
 import type { Seminar } from "@/data/seminars";
 import { universityDotMap } from "@/data/seminars";
 
@@ -11,6 +12,7 @@ interface SeminarCardProps {
 const SeminarCard = ({ seminar, index }: SeminarCardProps) => {
   const dateObj = parseISO(seminar.date);
   const dotClass = universityDotMap[seminar.university];
+  const [expanded, setExpanded] = useState(false);
 
   return (
     <article
@@ -59,9 +61,14 @@ const SeminarCard = ({ seminar, index }: SeminarCardProps) => {
         </div>
 
         {/* Abstract */}
-        <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
-          {seminar.abstract}
-        </p>
+        {seminar.abstract && (
+          <p
+            className={`text-sm text-muted-foreground leading-relaxed cursor-pointer ${expanded ? "" : "line-clamp-2"}`}
+            onClick={() => setExpanded(v => !v)}
+          >
+            {seminar.abstract}
+          </p>
+        )}
 
         {/* Subject badge */}
         <div className="mt-4 pt-3 border-t border-border flex items-center justify-between">

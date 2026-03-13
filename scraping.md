@@ -32,20 +32,18 @@ The listing page is fetched directly with a plain HTTP GET. Each event appears i
 
 A single regex matches each `<h2><a>` block and the date span that follows it. From there:
 
-- **Title:** the full link text, e.g. `Colloquium: Vitaly Bergelson (Ohio State)`
-- **Speaker:** extracted from the title after the colon — `Vitaly Bergelson`
-- **Affiliation:** extracted from the parenthesised part — `Ohio State`
+- **Title:** the full link text, e.g. `Colloquium: Vitaly Bergelson (Ohio State)` or `NT&AG: Ofir Gorodetsky (Technion)`
+- **Speaker:** extracted from the title by splitting on the first `:`, `-`, or `–`, then taking the part after the last `:` if one remains (handles nested labels like `Colloquium: Zhukovitsky Lecture: Name`)
+- **Affiliation:** extracted from the parenthesised part at the end of the speaker segment — e.g. `Ohio State`
 - **Date:** parsed from `DD/MM/YYYY` format
 - **Time:** extracted from the date string if present; defaults to `14:30`
 - **Location:** hardcoded to `Manchester Building, Hall 2` (standard venue for the colloquium)
 - **Source URL:** the individual event page link from the `href`
-
-**Abstract fetching:**
-
-After parsing the listing page, each event's individual page is fetched and the abstract is extracted from the Drupal body field (`field--name-body` or `field-name-body`, then the first `<p>` inside it). If no abstract is found (network error, or page has no body text), a generic placeholder is stored instead.
+- **Abstract:** not available on the HUJI events site; stored as empty string
 
 **Known limitations:**
 - Location is hardcoded and may be wrong for special events held elsewhere
+- Abstract is always empty (HUJI event pages do not include abstract text)
 
 ---
 
@@ -72,6 +70,34 @@ HTML entities (`&amp;`, etc.) are decoded before storing.
 **Known limitations:**
 - Affiliation is not extracted and defaults to `Technion`
 - Source URL links to the listing page, not individual event pages
+
+---
+
+## Weizmann Institute of Science — Integrated Calendar
+
+**URL:** `https://www.weizmann.ac.il/pages/calendar`
+
+**Method:** Direct HTML fetch (no Firecrawl)
+
+The Weizmann calendar is a Drupal 7 site with server-rendered HTML. Events are listed as `<li class="views-row ...">` elements.
+
+**Parsing approach:**
+
+The HTML is split into per-event blocks on `views-row`. Within each block:
+
+- **Event type:** from the `<span class="event-type"><span class="TYPE">` pattern — only `lecture`, `seminar`, and `colloquium` types are kept (conferences, workshops, etc. are skipped)
+- **Event ID and URL:** extracted from the ICS calendar link (`/pages/event/NNNN/ics`) — the individual event page is `/pages/event/NNNN`
+- **Date:** day from `start-date-day`, month+year from `start-date-month` (e.g. "March 2026"), parsed with a month-name lookup table
+- **Time:** start time from `event-time-wrapper`
+- **Title:** the talk subtitle (`views-label-field-subtitle-english` → `field-content`) when present; otherwise falls back to the H3 event/series title
+- **Speaker:** from the `views-label-field-lecturer-english` table row; text before the first `<br>` is used (discards secondary info like "lunch at 12:45")
+- **Location:** `event-location-wrapper`
+- **Abstract:** `event-abstract-wrapper` (full text already present inline in the listing page HTML)
+
+**Known limitations:**
+- Affiliation is not extracted; defaults to "Weizmann Institute of Science"
+- Subject area is hardcoded to "Natural Sciences" (no reliable per-event discipline field)
+- When no subtitle is present, the series/event title is used as the seminar title, which is sometimes generic (e.g. "Special Guest Seminar")
 
 ---
 
