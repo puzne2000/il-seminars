@@ -36,6 +36,7 @@ async function scrapeWithFirecrawl(url: string): Promise<string> {
       url,
       formats: ["markdown"],
       onlyMainContent: true,
+      timeout: 30000,
     }),
   });
 
