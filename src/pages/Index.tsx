@@ -1,14 +1,18 @@
 import { useMemo, useState } from "react";
-import { GraduationCap } from "lucide-react";
+import { GraduationCap, RefreshCw } from "lucide-react";
 import FilterBar from "@/components/FilterBar";
 import SeminarCard from "@/components/SeminarCard";
-import { seminars, type University, type SubjectArea } from "@/data/seminars";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useSeminars } from "@/hooks/useSeminars";
+import type { University, SubjectArea } from "@/data/seminars";
 
 const Index = () => {
   const [search, setSearch] = useState("");
   const [university, setUniversity] = useState<University | "All">("All");
   const [subject, setSubject] = useState<SubjectArea | "All">("All");
   const [type, setType] = useState<"All" | "Seminar" | "Colloquium">("All");
+
+  const { data: seminars = [], isLoading, error } = useSeminars();
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -19,7 +23,7 @@ const Index = () => {
       if (q && !s.title.toLowerCase().includes(q) && !s.speaker.toLowerCase().includes(q) && !s.abstract.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [search, university, subject, type]);
+  }, [search, university, subject, type, seminars]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -53,10 +57,20 @@ const Index = () => {
 
         {/* Results count */}
         <p className="text-sm text-muted-foreground mb-6">
-          {filtered.length} {filtered.length === 1 ? "event" : "events"} found
+          {isLoading ? "Loading..." : `${filtered.length} ${filtered.length === 1 ? "event" : "events"} found`}
         </p>
 
-        {filtered.length === 0 ? (
+        {isLoading ? (
+          <div className="grid gap-5 sm:grid-cols-2">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-64 rounded-lg" />
+            ))}
+          </div>
+        ) : error ? (
+          <div className="text-center py-16">
+            <p className="text-muted-foreground">Failed to load seminars. Please try again later.</p>
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="text-center py-16">
             <p className="text-muted-foreground">No seminars match your filters.</p>
           </div>

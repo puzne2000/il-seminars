@@ -1,1 +1,4 @@
 project_id = "wzbkmepgwihppoipfarb"
+
+[functions.scrape-seminars]
+verify_jwt = false
