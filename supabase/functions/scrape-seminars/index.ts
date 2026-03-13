@@ -125,6 +125,109 @@ function decodeHtml(s: string): string {
   return s.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").trim();
 }
 
+async function scrapeHujiPhysics(pageUrl: string): Promise<ScrapedSeminar[]> {
+  const response = await fetch(pageUrl, {
+    headers: { "User-Agent": "Mozilla/5.0 (compatible; seminar-scraper/1.0)" },
+  });
+  const html = await response.text();
+  const seminars: ScrapedSeminar[] = [];
+
+  // Each event is an <article class="node-event"> block
+  const blocks = html.split(/(?=<article[^>]+node-event)/);
+
+  for (const block of blocks) {
+    const hrefMatch = block.match(/<h2[^>]*>\s*<a\s+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/);
+    if (!hrefMatch) continue;
+    const [, href, rawTitle] = hrefMatch;
+    const title = decodeHtml(rawTitle.replace(/<[^>]+>/g, ""));
+    if (!title) continue;
+
+    const dateRawMatch = block.match(/date-display-single">(.*?)</);
+    if (!dateRawMatch) continue;
+    const dateParts = dateRawMatch[1].match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (!dateParts) continue;
+    const [, day, month, year] = dateParts;
+    const date = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+
+    const timeMatch = block.match(/time-display-single">([\d:]+)/);
+    const time = timeMatch ? timeMatch[1] : "TBA";
+
+    // Speaker and affiliation from title (same logic as math HUJI)
+    let speaker = "TBA";
+    let affiliation = "TBA";
+    const speakerMatch = title.match(/^.*?[:\-–]\s*(.+)/);
+    if (speakerMatch) {
+      const raw = speakerMatch[1].trim();
+      const speakerPart = raw.includes(":") ? raw.slice(raw.lastIndexOf(":") + 1).trim() : raw;
+      const affMatch = speakerPart.match(/^(.*?)\s*\(([^)]+)\)\s*$/);
+      if (affMatch) {
+        speaker = affMatch[1].trim() || speakerPart;
+        affiliation = affMatch[2].trim();
+      } else {
+        speaker = speakerPart;
+      }
+    }
+
+    const sourceUrl = href.startsWith("http") ? href : `https://phys.huji.ac.il${href}`;
+
+    // Fetch individual event page for location and abstract
+    let abstract = "";
+    let location = "Racah Institute of Physics";
+    try {
+      const evtResp = await fetch(sourceUrl, {
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; seminar-scraper/1.0)" },
+      });
+      const evtHtml = await evtResp.text();
+
+      const locMatch = evtHtml.match(/field-name-field-event-location[\s\S]*?field-item even">\s*(.*?)\s*<\/div>/);
+      if (locMatch) location = decodeHtml(locMatch[1].replace(/<[^>]+>/g, "").trim()) || location;
+
+      const bodyMatch = evtHtml.match(/field-type-text-with-summary[\s\S]*?field-item even">([\s\S]*?)<\/div>\s*<\/div>\s*<\/div>/);
+      if (bodyMatch) {
+        const bodyText = bodyMatch[1];
+
+        // Extract speaker from "Lecturer: Name - Institution" if present
+        const lecturerMatch = bodyText.match(/Lecturer:\s*([^<\n]+)/i);
+        if (lecturerMatch) {
+          const lecturerRaw = lecturerMatch[1].replace(/<[^>]+>/g, "").trim();
+          const dashIdx = lecturerRaw.search(/\s[-–]\s/);
+          if (dashIdx !== -1) {
+            speaker = lecturerRaw.slice(0, dashIdx).trim();
+            affiliation = lecturerRaw.slice(dashIdx).replace(/^[\s\-–]+/, "").trim();
+          } else {
+            speaker = lecturerRaw;
+          }
+        }
+
+        const bqMatch = bodyText.match(/<blockquote>([\s\S]*?)<\/blockquote>/);
+        if (bqMatch) {
+          abstract = decodeHtml(bqMatch[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim());
+        }
+      }
+    } catch (_) { /* ignore */ }
+
+    const id = `huji-phys-${date}-${title.substring(0, 30).replace(/\s+/g, "-").replace(/[^a-zA-Z0-9-]/g, "").toLowerCase()}`;
+
+    seminars.push({
+      external_id: id,
+      title,
+      speaker,
+      affiliation,
+      university: "Hebrew University",
+      department: "Racah Institute of Physics",
+      subject_area: "Physics",
+      date,
+      time,
+      location,
+      abstract,
+      type: "Seminar",
+      source_url: sourceUrl,
+    });
+  }
+
+  return seminars;
+}
+
 async function scrapeTechnionCS(pageUrl: string): Promise<ScrapedSeminar[]> {
   const response = await fetch(pageUrl, {
     headers: { "User-Agent": "Mozilla/5.0 (compatible; seminar-scraper/1.0)" },
@@ -307,6 +410,10 @@ Deno.serve(async (req) => {
       {
         url: "https://www.weizmann.ac.il/pages/calendar",
         scraper: scrapeWeizmann,
+      },
+      {
+        url: "https://phys.huji.ac.il/calendar/upcoming",
+        scraper: scrapeHujiPhysics,
       },
     ];
 
