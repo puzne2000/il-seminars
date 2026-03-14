@@ -23,6 +23,7 @@ export type Database = {
           department: string
           external_id: string | null
           id: string
+          last_scraped_at: string | null
           location: string
           source_url: string | null
           speaker: string
@@ -41,6 +42,7 @@ export type Database = {
           department: string
           external_id?: string | null
           id?: string
+          last_scraped_at?: string | null
           location: string
           source_url?: string | null
           speaker: string
@@ -59,6 +61,7 @@ export type Database = {
           department?: string
           external_id?: string | null
           id?: string
+          last_scraped_at?: string | null
           location?: string
           source_url?: string | null
           speaker?: string
