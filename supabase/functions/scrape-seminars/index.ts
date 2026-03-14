@@ -20,7 +20,7 @@ interface ScrapedSeminar {
   abstract: string;
   type: "Seminar" | "Colloquium";
   source_url?: string;
-  last_scraped_at: string;
+  last_scraped_at?: string;
 }
 
 async function scrapeWithFirecrawl(url: string): Promise<string> {
