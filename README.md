@@ -1,73 +1,131 @@
-# Welcome to your Lovable project
+# IL Seminars
 
-## Project info
+A website listing upcoming academic seminars and colloquia at Israeli universities, auto-populated by a scraper.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Live sites
 
-## How can I edit this code?
+| Host | URL |
+|------|-----|
+| Lovable | auto-deploys from `main` (check Lovable dashboard for URL) |
+| Cloudflare Pages | auto-deploys from `main` (check Cloudflare dashboard for URL) |
 
-There are several ways of editing your application.
+Both deploy automatically on every push to `main`.
 
-**Use Lovable**
+## Tech stack
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+- **Frontend**: Vite + React + TypeScript + Tailwind CSS + shadcn/ui
+- **Backend**: Supabase (PostgreSQL + Edge Functions)
+- **Scraper**: Deno edge function (`supabase/functions/scrape-seminars/index.ts`)
 
-Changes made via Lovable will be committed automatically to this repo.
+## Supabase project
 
-**Use your preferred IDE**
+The production Supabase project is owned by the `puzne2000` account.
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+| Key | Where to find |
+|-----|---------------|
+| Project URL | `https://vkaphyqggmuyrzrszgzp.supabase.co` |
+| Anon key | Supabase Dashboard → Settings → API → `anon public` |
+| Service role key | Supabase Dashboard → Settings → API → `service_role` (keep secret) |
+| Dashboard | https://supabase.com/dashboard/project/vkaphyqggmuyrzrszgzp |
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+Production credentials are committed in `.env` (anon key only — safe to commit).
 
-Follow these steps:
+## Branches
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+| Branch | Purpose |
+|--------|---------|
+| `main` | Production — synced with Lovable, auto-deploys everywhere |
+| `local-branch` | Local dev only — has the LAN hostname patch; do NOT push to Lovable |
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+## Scripts
 
-# Step 3: Install the necessary dependencies.
-npm i
+| Script | What it does |
+|--------|-------------|
+| `./start.sh` | Starts Docker, local Supabase, edge functions server, and Vite dev server |
+| `./stop.sh` | Stops all of the above |
+| `./run_scraper.sh` | Triggers a scrape against the **local** Supabase and prints logs |
+| `./scrape_and_sync.sh` | Scrapes locally (bypasses university firewalls) and syncs results to the **remote** Supabase |
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+`scrape_and_sync.sh` is the right tool when the remote edge function can't reach a university site (e.g. HUJI blocks cloud IPs). It starts Docker and Supabase automatically if they aren't running.
+
+## Local development
+
+Requirements: Node.js, Docker Desktop, Supabase CLI (`npm i -g supabase` or use `npx supabase`).
+
+```bash
+./start.sh          # start everything
+# frontend at http://localhost:8080
+# Supabase Studio at http://127.0.0.1:54323
+./stop.sh           # stop everything
 ```
 
-**Edit a file directly in GitHub**
+Frontend-only commands:
+```bash
+npm run dev         # Vite dev server
+npm run build       # production build
+npm run lint        # ESLint
+npm run test        # Vitest (run once)
+npm run test:watch  # Vitest (watch mode)
+```
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+Logs: `/tmp/il-seminars-frontend.log`, `/tmp/il-seminars-functions.log`
 
-**Use GitHub Codespaces**
+Direct DB access:
+```bash
+docker exec supabase_db_wzbkmepgwihppoipfarb psql -U postgres
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Environment files
 
-## What technologies are used for this project?
+| File | Purpose |
+|------|---------|
+| `.env` | Production Supabase credentials — committed, used by hosted sites |
+| `.env.local` | Local Supabase credentials — gitignored, overrides `.env` in dev |
 
-This project is built with:
+**Never overwrite `.env` with local credentials** — it would break the production sites.
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Deploying the edge function
 
-## How can I deploy this project?
+The scraper must be manually deployed after changes:
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+```bash
+npx supabase login   # first time only
+npx supabase functions deploy scrape-seminars --project-ref vkaphyqggmuyrzrszgzp
+```
 
-## Can I connect a custom domain to my Lovable project?
+## Scheduling automatic scrapes
 
-Yes, you can!
+A daily scrape can be scheduled via Supabase's pg_cron. Run in the SQL editor at supabase.com:
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+```sql
+select cron.schedule(
+  'daily-scrape',
+  '0 6 * * *',   -- 6am UTC daily
+  $$
+  select net.http_post(
+    url     := 'https://vkaphyqggmuyrzrszgzp.supabase.co/functions/v1/scrape-seminars',
+    headers := '{}'::jsonb
+  );
+  $$
+);
+```
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Note: if university sites block the cloud IP, use `scrape_and_sync.sh` from a local machine instead.
+
+To remove the job: `select cron.unschedule('daily-scrape');`
+
+## Adding a new seminar source
+
+See `scraping.md` for detailed per-source parsing notes and instructions.
+
+## Architecture
+
+Single-page React app. All filtering is done client-side after fetching upcoming seminars (date ≥ yesterday). Data is cached for 5 minutes via React Query.
+
+Key files:
+- `src/pages/Index.tsx` — main page, filter state
+- `src/components/FilterBar.tsx` — search + dropdowns
+- `src/components/SeminarCard.tsx` — individual seminar card
+- `src/hooks/useSeminars.ts` — data fetching from Supabase
+- `src/data/seminars.ts` — shared `Seminar` type and constants
+- `supabase/functions/scrape-seminars/index.ts` — scraper edge function
