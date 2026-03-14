@@ -36,6 +36,16 @@ echo "Starting frontend..."
 npm run dev > /tmp/il-seminars-frontend.log 2>&1 &
 echo $! >> "$PID_FILE"
 
+# 5. Schedule daily scrape in background
+echo "Scheduling daily scrape..."
+(
+  while true; do
+    curl -s -X POST http://127.0.0.1:54321/functions/v1/scrape-seminars >> /tmp/il-seminars-functions.log 2>&1
+    sleep 86400
+  done
+) &
+echo $! >> "$PID_FILE"
+
 echo ""
 echo "All services started."
 echo "  Frontend: http://localhost:8080"
