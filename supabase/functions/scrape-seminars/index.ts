@@ -412,6 +412,49 @@ async function scrapeWeizmann(pageUrl: string): Promise<ScrapedSeminar[]> {
   return seminars;
 }
 
+const ALL_SOURCES: Record<string, { url: string; scraper: (url: string) => Promise<ScrapedSeminar[]> }> = {
+  "huji-math": {
+    url: "https://mathematics.huji.ac.il/eventss/events-seminars",
+    scraper: scrapeHujiColloquiums,
+  },
+  "technion-cs": {
+    url: "https://www.cs.technion.ac.il/events/",
+    scraper: scrapeTechnionCS,
+  },
+  "weizmann": {
+    url: "https://www.weizmann.ac.il/pages/calendar",
+    scraper: scrapeWeizmann,
+  },
+  "huji-physics": {
+    url: "https://phys.huji.ac.il/calendar/upcoming",
+    scraper: scrapeHujiPhysics,
+  },
+};
+
+async function scrapeSource(
+  sourceKey: string,
+  source: { url: string; scraper: (url: string) => Promise<ScrapedSeminar[]> },
+  supabase: ReturnType<typeof createClient>,
+  scrapeTime: string,
+): Promise<number> {
+  console.log(`Scraping (direct): ${source.url}`);
+  const seminars = (await source.scraper(source.url)).map((s) => ({ ...s, last_scraped_at: scrapeTime }));
+  console.log(`[${sourceKey}] Parsed ${seminars.length} seminars`);
+
+  if (seminars.length > 0) {
+    const { error } = await supabase
+      .from("seminars")
+      .upsert(seminars, { onConflict: "external_id" });
+
+    if (error) {
+      console.error(`[${sourceKey}] Error upserting:`, error);
+      return 0;
+    }
+    return seminars.length;
+  }
+  return 0;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -421,67 +464,49 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
-
     const scrapeTime = new Date().toISOString();
 
-    console.log("Starting seminar scrape...");
+    // Allow scraping a single source via ?source=huji-math
+    const url = new URL(req.url);
+    const sourceParam = url.searchParams.get("source");
 
-    const directSources = [
-      {
-        url: "https://mathematics.huji.ac.il/eventss/events-seminars",
-        scraper: scrapeHujiColloquiums,
-      },
-      {
-        url: "https://www.cs.technion.ac.il/events/",
-        scraper: scrapeTechnionCS,
-      },
-      {
-        url: "https://www.weizmann.ac.il/pages/calendar",
-        scraper: scrapeWeizmann,
-      },
-      {
-        url: "https://phys.huji.ac.il/calendar/upcoming",
-        scraper: scrapeHujiPhysics,
-      },
-    ];
+    console.log(`Starting seminar scrape... ${sourceParam ? `(source: ${sourceParam})` : "(all sources)"}`);
 
     let totalUpserted = 0;
+    const sourcesToScrape = sourceParam
+      ? { [sourceParam]: ALL_SOURCES[sourceParam] }
+      : ALL_SOURCES;
 
-    // Direct HTML sources
-    for (const source of directSources) {
-      try {
-        console.log(`Scraping (direct): ${source.url}`);
-        const seminars = (await source.scraper(source.url)).map((s) => ({ ...s, last_scraped_at: scrapeTime }));
-        console.log(`Parsed ${seminars.length} seminars`);
+    // Scrape all selected sources in parallel
+    const results = await Promise.allSettled(
+      Object.entries(sourcesToScrape).map(async ([key, source]) => {
+        if (!source) throw new Error(`Unknown source: ${key}`);
+        return scrapeSource(key, source, supabase, scrapeTime);
+      })
+    );
 
-        if (seminars.length > 0) {
-          const { error } = await supabase
-            .from("seminars")
-            .upsert(seminars, { onConflict: "external_id" });
-
-          if (error) {
-            console.error(`Error upserting seminars:`, error);
-          } else {
-            totalUpserted += seminars.length;
-          }
-        }
-      } catch (err) {
-        console.error(`Error scraping ${source.url}:`, err);
+    for (const result of results) {
+      if (result.status === "fulfilled") {
+        totalUpserted += result.value;
+      } else {
+        console.error("Source failed:", result.reason);
       }
     }
 
     // Delete seminars not seen by the scraper in over a week
-    const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const { error: deleteError, count: deleteCount } = await supabase
-      .from("seminars")
-      .delete({ count: "exact" })
-      .lt("last_scraped_at", cutoff)
-      .not("last_scraped_at", "is", null);
+    if (!sourceParam) {
+      const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const { error: deleteError, count: deleteCount } = await supabase
+        .from("seminars")
+        .delete({ count: "exact" })
+        .lt("last_scraped_at", cutoff)
+        .not("last_scraped_at", "is", null);
 
-    if (deleteError) {
-      console.error("Error deleting stale seminars:", deleteError);
-    } else {
-      console.log(`Deleted ${deleteCount ?? 0} stale seminars.`);
+      if (deleteError) {
+        console.error("Error deleting stale seminars:", deleteError);
+      } else {
+        console.log(`Deleted ${deleteCount ?? 0} stale seminars.`);
+      }
     }
 
     console.log(`Scrape complete. Upserted ${totalUpserted} seminars.`);
