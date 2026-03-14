@@ -50,12 +50,10 @@ async function scrapeWithFirecrawl(url: string): Promise<string> {
 }
 
 
-async function scrapeHujiColloquiums(pageUrl: string): Promise<ScrapedSeminar[]> {
-  const response = await fetch(pageUrl, {
-    headers: { "User-Agent": "Mozilla/5.0 (compatible; seminar-scraper/1.0)" },
-  });
-  const html = await response.text();
+async function scrapeHujiColloquiumsPage(html: string): Promise<{ seminars: ScrapedSeminar[]; foundPast: boolean }> {
   const seminars: ScrapedSeminar[] = [];
+  const today = new Date().toISOString().slice(0, 10);
+  let foundPast = false;
 
   // Each event is an <h2><a href="URL">Title</a></h2> followed by a date span
   const eventPattern = /<h2[^>]*>\s*<a\s+href="([^"]+)"[^>]*>(.*?)<\/a>\s*<\/h2>[\s\S]*?date-display-single">(.*?)</g;
@@ -73,6 +71,11 @@ async function scrapeHujiColloquiums(pageUrl: string): Promise<ScrapedSeminar[]>
     if (!dateMatch) continue;
     const [, day, month, year] = dateMatch;
     const date = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+
+    if (date < today) {
+      foundPast = true;
+      continue;
+    }
 
     // Time may appear in the date string
     const timeMatch = dateRaw.match(/(\d{1,2}:\d{2})/);
@@ -118,7 +121,28 @@ async function scrapeHujiColloquiums(pageUrl: string): Promise<ScrapedSeminar[]>
     });
   }
 
-  return seminars;
+  return { seminars, foundPast };
+}
+
+async function scrapeHujiColloquiums(pageUrl: string): Promise<ScrapedSeminar[]> {
+  const baseUrl = pageUrl.split("?")[0];
+  const allSeminars: ScrapedSeminar[] = [];
+
+  for (let page = 0; ; page++) {
+    const url = page === 0 ? baseUrl : `${baseUrl}?page=${page}`;
+    console.log(`Fetching HUJI Math page ${page}: ${url}`);
+    const response = await fetch(url, {
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; seminar-scraper/1.0)" },
+    });
+    const html = await response.text();
+
+    const { seminars, foundPast } = await scrapeHujiColloquiumsPage(html);
+    allSeminars.push(...seminars);
+
+    if (seminars.length === 0) break;
+  }
+
+  return allSeminars;
 }
 
 function decodeHtml(s: string): string {
@@ -126,6 +150,7 @@ function decodeHtml(s: string): string {
 }
 
 async function scrapeHujiPhysics(pageUrl: string): Promise<ScrapedSeminar[]> {
+  console.log(`Fetching HUJI Physics: ${pageUrl}`);
   const response = await fetch(pageUrl, {
     headers: { "User-Agent": "Mozilla/5.0 (compatible; seminar-scraper/1.0)" },
   });
@@ -174,6 +199,7 @@ async function scrapeHujiPhysics(pageUrl: string): Promise<ScrapedSeminar[]> {
     let abstract = "";
     let location = "Racah Institute of Physics";
     try {
+      console.log(`  Fetching HUJI Physics event: ${sourceUrl}`);
       const evtResp = await fetch(sourceUrl, {
         headers: { "User-Agent": "Mozilla/5.0 (compatible; seminar-scraper/1.0)" },
       });
@@ -229,6 +255,7 @@ async function scrapeHujiPhysics(pageUrl: string): Promise<ScrapedSeminar[]> {
 }
 
 async function scrapeTechnionCS(pageUrl: string): Promise<ScrapedSeminar[]> {
+  console.log(`Fetching Technion CS: ${pageUrl}`);
   const response = await fetch(pageUrl, {
     headers: { "User-Agent": "Mozilla/5.0 (compatible; seminar-scraper/1.0)" },
   });
@@ -293,6 +320,7 @@ const MONTH_NAMES: Record<string, string> = {
 };
 
 async function scrapeWeizmann(pageUrl: string): Promise<ScrapedSeminar[]> {
+  console.log(`Fetching Weizmann: ${pageUrl}`);
   const response = await fetch(pageUrl, {
     headers: { "User-Agent": "Mozilla/5.0 (compatible; seminar-scraper/1.0)" },
   });

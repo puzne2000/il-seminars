@@ -103,7 +103,7 @@ Scrape trigger (manual HTTP POST)
   → Stale records (last_scraped_at > 7 days ago) deleted
 
 User opens app
-  → React Query fetches upcoming seminars from Supabase (date >= yesterday)
+  → React Query fetches upcoming seminars from Supabase (date >= yesterday, not today — so same-day events remain visible even after they've started)
   → Client-side filtering by search, university, subject, type
   → Rendered as seminar cards; title links to source, abstract expands on click
 ```
