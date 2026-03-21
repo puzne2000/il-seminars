@@ -12,7 +12,23 @@ export default defineConfig(({ mode }) => ({
       overlay: false,
     },
   },
-  plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
+  plugins: [
+    react(),
+    mode === "development" && componentTagger(),
+    mode === "development" && {
+      name: "access-logger",
+      configureServer(server) {
+        server.middlewares.use((req, _res, next) => {
+          const ip = req.socket.remoteAddress || "unknown";
+          const url = req.url || "";
+          if (!url.startsWith("/@") && !url.startsWith("/node_modules")) {
+            console.log(`[access] ${new Date().toISOString()} ${ip} ${url}`);
+          }
+          next();
+        });
+      },
+    },
+  ].filter(Boolean),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
