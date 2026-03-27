@@ -5,11 +5,11 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
-LOCAL_URL="http://127.0.0.1:54321"
-LOCAL_SERVICE_KEY="sb_secret_N7UND0UgjKTVK-Uodkm0Hg_xSvEMPvz"
+# Load secrets from gitignored supabase/.env (never commit keys directly in this file)
+source "$SCRIPT_DIR/supabase/.env"
 
+LOCAL_URL="http://127.0.0.1:54321"
 REMOTE_URL="https://vkaphyqggmuyrzrszgzp.supabase.co"
-REMOTE_SERVICE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZrYXBoeXFnZ211eXJ6cnN6Z3pwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzQ4NzM4NywiZXhwIjoyMDg5MDYzMzg3fQ.oSHQWxU8_-lzre9Qv65ipFitkkDAs3B19yVPDSAIfdk"
 
 FUNCTIONS_LOG=/tmp/il-seminars-functions.log
 FUNCTIONS_PID_FILE="$SCRIPT_DIR/.functions-pid"
@@ -33,7 +33,7 @@ fi
 if ! curl -sf -X POST "$LOCAL_URL/functions/v1/scrape-seminars" \
     -H "Content-Type: application/json" -o /dev/null 2>/dev/null; then
   echo "Starting edge functions server..."
-  npx supabase functions serve >> "$FUNCTIONS_LOG" 2>&1 &
+  npx supabase functions serve --env-file supabase/.env >> "$FUNCTIONS_LOG" 2>&1 &
   echo $! > "$FUNCTIONS_PID_FILE"
   echo -n "Waiting for functions server"
   until curl -sf -X POST "$LOCAL_URL/functions/v1/scrape-seminars" \
