@@ -28,7 +28,7 @@ npx supabase start
 
 # 3. Start edge functions dev server in background (enables hot-reload of scraper)
 echo "Starting Edge Functions server..."
-npx supabase functions serve > /tmp/il-seminars-functions.log 2>&1 &
+npx supabase functions serve --env-file supabase/.env > /tmp/il-seminars-functions.log 2>&1 &
 echo $! >> "$PID_FILE"
 
 # 4. Start Vite frontend in background

@@ -27,3 +27,4 @@ dist-ssr
 # Supabase local CLI state
 supabase/.branches
 supabase/.temp
+supabase/.env
