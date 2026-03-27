@@ -116,7 +116,7 @@ To remove the job: `select cron.unschedule('daily-scrape');`
 
 ## Adding a new seminar source
 
-See `scraping.md` for detailed per-source parsing notes and instructions.
+See `docs/scraping.md` for detailed per-source parsing notes and instructions.
 
 ## Architecture
 

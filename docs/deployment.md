@@ -91,7 +91,7 @@ Scheduled via local cron (Mondays and Thursdays at 8pm UTC):
 0 20 * * 1,4 "/Users/guykindler/My Drive/python stuff/il-seminars/scrape_and_sync.sh" >> /tmp/il-seminars-sync.log 2>&1
 ```
 
-See `crontab.md` for the full cron setup.
+See `docs/crontab.md` for the full cron setup.
 
 Manual scrape (local dev only):
 ```bash
@@ -106,7 +106,7 @@ This triggers the local edge function and tails new log output from `/tmp/il-sem
 | Area | How |
 |---|---|
 | Frontend behavior | Edit source code, push to `main` |
-| Scraper logic / sources | Edit `supabase/functions/scrape-seminars/index.ts`, then deploy (see above); see `scraping.md` for per-source parsing notes |
+| Scraper logic / sources | Edit `supabase/functions/scrape-seminars/index.ts`, then deploy (see above); see `docs/scraping.md` for per-source parsing notes |
 | Edge function secrets | Supabase dashboard → Project Settings → Edge Functions |
 | Database schema | Supabase dashboard SQL editor or `supabase db push` |
 | Cloudflare Pages settings | Cloudflare dashboard → Pages → il-seminars |

@@ -1,6 +1,6 @@
 # Architecture Overview
 
-> For deployment details (local stack, remote hosting, scraping schedule, how to change settings), see `deployment.md`.
+> For deployment details (local stack, remote hosting, scraping schedule, how to change settings), see `docs/deployment.md`.
 
 ## Purpose
 

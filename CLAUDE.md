@@ -66,7 +66,7 @@ Each scraper logs every URL it fetches to stdout (visible in `/tmp/il-seminars-f
 
 **HUJI Mathematics** paginates through `?page=0`, `?page=1`, etc., stopping when a page yields no upcoming events (the site does not sort reliably by date).
 
-See `scraping.md` for detailed per-source parsing notes and instructions for adding a new source.
+See `docs/scraping.md` for detailed per-source parsing notes and instructions for adding a new source.
 
 ## Branches
 
