@@ -430,6 +430,103 @@ async function scrapeWeizmann(pageUrl: string): Promise<ScrapedSeminar[]> {
   return seminars;
 }
 
+// ── ICS feed scraper ────────────────────────────────────────────────────────
+
+function unfoldIcs(raw: string): string {
+  // RFC 5545: long lines are folded with CRLF + whitespace continuation
+  return raw.replace(/\r\n[ \t]/g, "").replace(/\n[ \t]/g, "");
+}
+
+function unescapeIcs(s: string): string {
+  return s.replace(/\\n/g, "\n").replace(/\\,/g, ",").replace(/\\;/g, ";").replace(/\\\\/g, "\\");
+}
+
+function parseIcsDatetime(dtstart: string): { date: string; time: string } {
+  const match = dtstart.match(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})/);
+  if (!match) return { date: "", time: "" };
+  const [, year, month, day, hour, min] = match;
+  return { date: `${year}-${month}-${day}`, time: `${hour}:${min}` };
+}
+
+interface IcsFeedOptions {
+  university: string;
+  department: string;
+  subject_area: string;
+  type: "Seminar" | "Colloquium";
+  id_prefix: string;
+  default_location: string;
+  affiliation: string;
+}
+
+async function scrapeIcsFeed(icsUrl: string, opts: IcsFeedOptions): Promise<ScrapedSeminar[]> {
+  console.log(`Fetching ICS feed: ${icsUrl}`);
+  const response = await fetch(icsUrl, {
+    headers: { "User-Agent": "Mozilla/5.0 (compatible; seminar-scraper/1.0)" },
+  });
+  const raw = unfoldIcs(await response.text());
+  const today = new Date().toISOString().slice(0, 10);
+  const seminars: ScrapedSeminar[] = [];
+
+  const getField = (block: string, name: string): string => {
+    const match = block.match(new RegExp(`^${name}(?:;[^:]*)?:(.*)$`, "m"));
+    return match ? match[1].trim() : "";
+  };
+
+  for (const block of raw.split("BEGIN:VEVENT").slice(1)) {
+    const dtstart = getField(block, "DTSTART");
+    const { date, time } = parseIcsDatetime(dtstart);
+    if (!date || date < today) continue;
+
+    const summary = unescapeIcs(getField(block, "SUMMARY"));
+    const description = unescapeIcs(getField(block, "DESCRIPTION"));
+    const locationRaw = unescapeIcs(getField(block, "LOCATION"));
+    const uid = getField(block, "UID");
+    const sourceUrl = unescapeIcs(getField(block, "URL"));
+
+    // SUMMARY format: "Speaker Name: Talk Title"
+    let speaker = "TBA";
+    let title = summary || "TBA";
+    const colonIdx = summary.indexOf(":");
+    if (colonIdx !== -1) {
+      speaker = summary.slice(0, colonIdx).trim();
+      title = summary.slice(colonIdx + 1).trim() || "TBA";
+    }
+
+    // LOCATION: Zoom meeting URL → zoom_link; physical room → append to default
+    let location = opts.default_location;
+    let zoom_link: string | undefined;
+    if (/zoom\.us\/j\//i.test(locationRaw)) {
+      zoom_link = locationRaw;
+    } else if (locationRaw && !/^https?:\/\//.test(locationRaw)) {
+      location = `${opts.default_location}, Room ${locationRaw}`;
+    }
+    if (!zoom_link) {
+      zoom_link = extractZoomLink(description) || extractZoomLink(block);
+    }
+
+    seminars.push({
+      external_id: `${opts.id_prefix}-${uid}`,
+      title,
+      speaker,
+      affiliation: opts.affiliation,
+      university: opts.university,
+      department: opts.department,
+      subject_area: opts.subject_area,
+      date,
+      time,
+      location,
+      abstract: description,
+      type: opts.type,
+      source_url: sourceUrl || icsUrl,
+      zoom_link,
+    });
+  }
+
+  return seminars;
+}
+
+// ── Sources ──────────────────────────────────────────────────────────────────
+
 const ALL_SOURCES: Record<string, { url: string; scraper: (url: string) => Promise<ScrapedSeminar[]> }> = {
   "huji-math": {
     url: "https://mathematics.huji.ac.il/eventss/events-seminars",
@@ -446,6 +543,30 @@ const ALL_SOURCES: Record<string, { url: string; scraper: (url: string) => Promi
   "huji-physics": {
     url: "https://phys.huji.ac.il/calendar/upcoming",
     scraper: scrapeHujiPhysics,
+  },
+  "bgu-pet": {
+    url: "https://www.math.bgu.ac.il/en/research/seminars/bgu-probability-and-ergodic-theory-pet-seminar/meetings.ics",
+    scraper: (url) => scrapeIcsFeed(url, {
+      university: "Ben-Gurion University",
+      department: "Department of Mathematics",
+      subject_area: "Mathematics",
+      type: "Seminar",
+      id_prefix: "bgu-pet",
+      default_location: "Department of Mathematics, Ben-Gurion University",
+      affiliation: "Ben-Gurion University",
+    }),
+  },
+  "bgu-colloquium": {
+    url: "https://www.math.bgu.ac.il/en/research/seminars/colloquium/meetings.ics",
+    scraper: (url) => scrapeIcsFeed(url, {
+      university: "Ben-Gurion University",
+      department: "Department of Mathematics",
+      subject_area: "Mathematics",
+      type: "Colloquium",
+      id_prefix: "bgu-colloquium",
+      default_location: "Department of Mathematics, Ben-Gurion University",
+      affiliation: "Ben-Gurion University",
+    }),
   },
 };
 
