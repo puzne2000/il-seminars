@@ -3,6 +3,7 @@ import { format, parseISO } from "date-fns";
 import { useState } from "react";
 import type { Seminar } from "@/data/seminars";
 import { universityDotMap } from "@/data/seminars";
+import { downloadICS } from "@/utils/ics";
 
 interface SeminarCardProps {
   seminar: Seminar;
@@ -57,10 +58,14 @@ const SeminarCard = ({ seminar, index }: SeminarCardProps) => {
 
         {/* Meta */}
         <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-muted-foreground mb-4">
-          <span className="flex items-center gap-1.5">
+          <button
+            onClick={() => downloadICS(seminar)}
+            title="Add to calendar"
+            className="flex items-center gap-1.5 hover:text-accent transition-colors duration-200"
+          >
             <Calendar className="w-3.5 h-3.5" />
             {format(dateObj, "EEE, MMM d")}
-          </span>
+          </button>
           <span className="flex items-center gap-1.5">
             <Clock className="w-3.5 h-3.5" />
             {seminar.time}
