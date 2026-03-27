@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { GraduationCap, RefreshCw } from "lucide-react";
+import { GraduationCap, RefreshCw, Github, PlusCircle } from "lucide-react";
 import FilterBar from "@/components/FilterBar";
 import SeminarCard from "@/components/SeminarCard";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -41,6 +41,26 @@ const Index = () => {
           <p className="text-primary-foreground/70 max-w-xl mx-auto text-base sm:text-lg">
             Discover seminars and colloquiums across Israel's leading universities — all in one place.
           </p>
+          <div className="flex justify-center gap-3 mt-6">
+            <a
+              href="https://github.com/puzne2000/il-seminars/issues/new?title=Add+seminar+source%3A+&body=**University%2FInstitution:**%0A%0A**Department%2FSeries+name:**%0A%0A**URL:**%0A%0A**Notes:**"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium bg-primary-foreground/10 text-primary-foreground/70 hover:bg-primary-foreground/20 hover:text-primary-foreground transition-colors"
+            >
+              <PlusCircle className="w-4 h-4" />
+              Suggest a seminar series
+            </a>
+            <a
+              href="https://github.com/puzne2000/il-seminars"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium bg-primary-foreground/10 text-primary-foreground/70 hover:bg-primary-foreground/20 hover:text-primary-foreground transition-colors"
+            >
+              <Github className="w-4 h-4" />
+              View on GitHub
+            </a>
+          </div>
         </div>
       </header>
 
