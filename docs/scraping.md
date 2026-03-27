@@ -98,7 +98,7 @@ The HTML is split into per-event blocks on `views-row`. Within each block:
 - **Zoom link:** extracted from the per-event HTML block using a `zoom.us/j/` URL regex
 
 **Known limitations:**
-- Affiliation is not extracted; defaults to "Weizmann Institute of Science"
+- Affiliation defaults to "Weizmann Institute of Science"; `university` is stored as `"Weizmann Institute"` to match the frontend filter
 - Subject area is hardcoded to "Natural Sciences" (no reliable per-event discipline field)
 - When no subtitle is present, the series/event title is used as the seminar title, which is sometimes generic (e.g. "Special Guest Seminar")
 

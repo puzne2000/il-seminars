@@ -414,7 +414,7 @@ async function scrapeWeizmann(pageUrl: string): Promise<ScrapedSeminar[]> {
       title,
       speaker,
       affiliation: "Weizmann Institute of Science",
-      university: "Weizmann Institute of Science",
+      university: "Weizmann Institute",
       department: seriesTitle || "Weizmann Institute of Science",
       subject_area: "Natural Sciences",
       date,
