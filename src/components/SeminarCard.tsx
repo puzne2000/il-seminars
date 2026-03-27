@@ -1,4 +1,4 @@
-import { Calendar, Clock, MapPin, User } from "lucide-react";
+import { Calendar, Clock, MapPin, User, Video } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useState } from "react";
 import type { Seminar } from "@/data/seminars";
@@ -69,6 +69,17 @@ const SeminarCard = ({ seminar, index }: SeminarCardProps) => {
             <MapPin className="w-3.5 h-3.5" />
             <span className="truncate">{seminar.location}</span>
           </span>
+          {seminar.zoomLink && (
+            <a
+              href={seminar.zoomLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 hover:text-accent transition-colors duration-200"
+            >
+              <Video className="w-3.5 h-3.5" />
+              <span>Zoom</span>
+            </a>
+          )}
         </div>
 
         {/* Abstract */}

@@ -32,6 +32,7 @@ export function useSeminars() {
         abstract: row.abstract || "",
         type: row.type,
         sourceUrl: row.source_url || undefined,
+        zoomLink: row.zoom_link || undefined,
       }));
     },
     staleTime: 5 * 60 * 1000, // 5 min

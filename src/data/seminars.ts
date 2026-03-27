@@ -51,6 +51,7 @@ export interface Seminar {
   abstract: string;
   type: string;
   sourceUrl?: string;
+  zoomLink?: string;
 }
 
 export const universities: University[] = [

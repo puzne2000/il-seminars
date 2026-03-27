@@ -20,7 +20,13 @@ interface ScrapedSeminar {
   abstract: string;
   type: "Seminar" | "Colloquium";
   source_url?: string;
+  zoom_link?: string;
   last_scraped_at?: string;
+}
+
+function extractZoomLink(html: string): string | undefined {
+  const match = html.match(/https?:\/\/(?:[a-z0-9-]+\.)?zoom\.us\/j\/[^\s"'<>]*/i);
+  return match ? match[0] : undefined;
 }
 
 async function scrapeWithFirecrawl(url: string): Promise<string> {
@@ -104,6 +110,11 @@ async function scrapeHujiColloquiumsPage(html: string): Promise<{ seminars: Scra
 
     const id = `huji-${date}-${title.substring(0, 30).replace(/\s+/g, "-").replace(/[^a-zA-Z0-9-]/g, "").toLowerCase()}`;
 
+    // Grab the block of HTML between this event's h2 and the next h2 to search for zoom links
+    const blockStart = match.index ?? 0;
+    const nextH2 = html.indexOf("<h2", blockStart + 1);
+    const eventBlock = nextH2 !== -1 ? html.slice(blockStart, nextH2) : html.slice(blockStart);
+
     seminars.push({
       external_id: id,
       title,
@@ -118,6 +129,7 @@ async function scrapeHujiColloquiumsPage(html: string): Promise<{ seminars: Scra
       abstract: "",
       type: "Colloquium",
       source_url: sourceUrl,
+      zoom_link: extractZoomLink(eventBlock),
     });
   }
 
@@ -198,6 +210,7 @@ async function scrapeHujiPhysics(pageUrl: string): Promise<ScrapedSeminar[]> {
     // Fetch individual event page for location and abstract
     let abstract = "";
     let location = "Racah Institute of Physics";
+    let zoomLink: string | undefined;
     try {
       console.log(`  Fetching HUJI Physics event: ${sourceUrl}`);
       const evtResp = await fetch(sourceUrl, {
@@ -230,6 +243,8 @@ async function scrapeHujiPhysics(pageUrl: string): Promise<ScrapedSeminar[]> {
           abstract = decodeHtml(bqMatch[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim());
         }
       }
+
+      zoomLink = extractZoomLink(evtHtml);
     } catch (_) { /* ignore */ }
 
     const id = `huji-phys-${date}-${title.substring(0, 30).replace(/\s+/g, "-").replace(/[^a-zA-Z0-9-]/g, "").toLowerCase()}`;
@@ -248,6 +263,7 @@ async function scrapeHujiPhysics(pageUrl: string): Promise<ScrapedSeminar[]> {
       abstract,
       type: "Seminar",
       source_url: sourceUrl,
+      zoom_link: zoomLink,
     });
   }
 
@@ -307,6 +323,7 @@ async function scrapeTechnionCS(pageUrl: string): Promise<ScrapedSeminar[]> {
       abstract: abstract,
       type: "Seminar",
       source_url: pageUrl,
+      zoom_link: extractZoomLink(block),
     });
   }
 
@@ -406,6 +423,7 @@ async function scrapeWeizmann(pageUrl: string): Promise<ScrapedSeminar[]> {
       abstract,
       type,
       source_url: sourceUrl,
+      zoom_link: extractZoomLink(block),
     });
   }
 
