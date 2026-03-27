@@ -52,7 +52,7 @@ echo "Scrape result: $RESULT"
 # ── 5. Fetch seminars from local DB ─────────────────────────────────────────
 echo "Reading local seminars..."
 SEMINARS=$(curl -s \
-  "$LOCAL_URL/rest/v1/seminars?select=external_id,title,speaker,affiliation,university,department,subject_area,date,time,location,abstract,type,source_url,last_scraped_at" \
+  "$LOCAL_URL/rest/v1/seminars?select=external_id,title,speaker,affiliation,university,department,subject_area,date,time,location,abstract,type,source_url,zoom_link,last_scraped_at" \
   -H "apikey: $LOCAL_SERVICE_KEY" \
   -H "Authorization: Bearer $LOCAL_SERVICE_KEY")
 
