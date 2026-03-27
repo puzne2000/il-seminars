@@ -288,8 +288,9 @@ async function scrapeTechnionCS(pageUrl: string): Promise<ScrapedSeminar[]> {
     if (!title) continue;
 
     // Extract all ev_r_col values within this block (speaker, date, location in order)
-    const cols = [...block.matchAll(/class='ev_r_col'>([\s\S]*?)<\/div>/g)]
-      .map(m => decodeHtml(m[1].replace(/<[^>]+>/g, "")));
+    const rawCols = [...block.matchAll(/class='ev_r_col'>([\s\S]*?)<\/div>/g)]
+      .map(m => m[1]);
+    const cols = rawCols.map(c => decodeHtml(c.replace(/<[^>]+>/g, "")));
 
     // Find the date column (contains day.month.year pattern)
     const dateColIdx = cols.findIndex(c => /\d{1,2}\.\d{1,2}\.\d{4}/.test(c));
@@ -297,7 +298,18 @@ async function scrapeTechnionCS(pageUrl: string): Promise<ScrapedSeminar[]> {
 
     const dateRaw = cols[dateColIdx];
     const speaker = cols[dateColIdx - 1] || "TBA";
-    const location = cols[dateColIdx + 1] || "Taub Building";
+
+    // Extract zoom link from the location column HTML before stripping tags,
+    // then remove the zoom anchor and any trailing " & " to get a clean location string.
+    const locationRaw = rawCols[dateColIdx + 1] || "";
+    const zoomFromLocation = extractZoomLink(locationRaw);
+    const locationClean = locationRaw
+      .replace(/<a\b[^>]*zoom[^>]*>[\s\S]*?<\/a>/gi, "")
+      .replace(/<[^>]+>/g, "")
+      .replace(/\s*&amp;\s*$/, "")
+      .replace(/\s*&\s*$/, "")
+      .trim();
+    const location = decodeHtml(locationClean) || "Taub Building";
 
     const dateMatch = dateRaw.match(/(\d{1,2})\.(\d{1,2})\.(\d{4}),?\s+(\d{1,2}:\d{2})/);
     if (!dateMatch) continue;
@@ -323,7 +335,7 @@ async function scrapeTechnionCS(pageUrl: string): Promise<ScrapedSeminar[]> {
       abstract: abstract,
       type: "Seminar",
       source_url: pageUrl,
-      zoom_link: extractZoomLink(block),
+      zoom_link: zoomFromLocation ?? extractZoomLink(block),
     });
   }
 
