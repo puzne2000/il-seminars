@@ -67,9 +67,20 @@ const SeminarCard = ({ seminar, index }: SeminarCardProps) => {
           </span>
           <span className="flex items-center gap-1.5">
             <MapPin className="w-3.5 h-3.5" />
-            <span className="truncate">{seminar.location}</span>
+            {seminar.zoomLink && seminar.location.toLowerCase() === "zoom" ? (
+              <a
+                href={seminar.zoomLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="truncate hover:text-accent transition-colors duration-200"
+              >
+                Zoom
+              </a>
+            ) : (
+              <span className="truncate">{seminar.location}</span>
+            )}
           </span>
-          {seminar.zoomLink && (
+          {seminar.zoomLink && seminar.location.toLowerCase() !== "zoom" && (
             <a
               href={seminar.zoomLink}
               target="_blank"
