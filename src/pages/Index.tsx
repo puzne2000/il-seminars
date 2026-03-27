@@ -11,6 +11,7 @@ const Index = () => {
   const [university, setUniversity] = useState<University | "All">("All");
   const [subject, setSubject] = useState<SubjectArea | "All">("All");
   const [type, setType] = useState<"All" | "Seminar" | "Colloquium">("All");
+  const [zoomOnly, setZoomOnly] = useState(false);
 
   const { data: seminars = [], isLoading, error } = useSeminars();
 
@@ -20,10 +21,11 @@ const Index = () => {
       if (university !== "All" && s.university !== university) return false;
       if (subject !== "All" && s.subjectArea !== subject) return false;
       if (type !== "All" && s.type !== type) return false;
+      if (zoomOnly && !s.zoomLink) return false;
       if (q && !s.title.toLowerCase().includes(q) && !s.speaker.toLowerCase().includes(q) && !s.abstract.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [search, university, subject, type, seminars]);
+  }, [search, university, subject, type, zoomOnly, seminars]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -53,6 +55,8 @@ const Index = () => {
           onSubjectChange={setSubject}
           selectedType={type}
           onTypeChange={setType}
+          zoomOnly={zoomOnly}
+          onZoomOnlyChange={setZoomOnly}
         />
 
         {/* Results count */}

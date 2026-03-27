@@ -10,6 +10,8 @@ interface FilterBarProps {
   onSubjectChange: (value: SubjectArea | "All") => void;
   selectedType: "All" | "Seminar" | "Colloquium";
   onTypeChange: (value: "All" | "Seminar" | "Colloquium") => void;
+  zoomOnly: boolean;
+  onZoomOnlyChange: (value: boolean) => void;
 }
 
 const FilterBar = ({
@@ -21,6 +23,8 @@ const FilterBar = ({
   onSubjectChange,
   selectedType,
   onTypeChange,
+  zoomOnly,
+  onZoomOnlyChange,
 }: FilterBarProps) => {
   return (
     <div className="bg-card rounded-lg shadow-card p-4 sm:p-6 mb-8">
@@ -69,6 +73,15 @@ const FilterBar = ({
             <option value="All">All Types</option>
             <option value="Seminar">Seminars</option>
             <option value="Colloquium">Colloquiums</option>
+          </select>
+
+          <select
+            value={zoomOnly ? "zoom" : "all"}
+            onChange={(e) => onZoomOnlyChange(e.target.value === "zoom")}
+            className="px-3 py-2 rounded-md bg-secondary text-secondary-foreground text-sm border-0 outline-none focus:ring-2 focus:ring-ring cursor-pointer"
+          >
+            <option value="all">All Talks</option>
+            <option value="zoom">Zoom Available</option>
           </select>
         </div>
       </div>
