@@ -19,7 +19,7 @@ Single-page app with one main route (`/`) that shows a searchable, filterable gr
 **Key files:**
 - `src/pages/Index.tsx` — main page with filter state and seminar grid
 - `src/components/FilterBar.tsx` — search box + dropdowns (university, subject, type)
-- `src/components/SeminarCard.tsx` — individual seminar display; title links to source, abstract expands on click
+- `src/components/SeminarCard.tsx` — individual seminar display; title links to source, abstract expands on click, zoom link shown when available, calendar icon downloads an `.ics` file
 - `src/hooks/useSeminars.ts` — React Query hook that fetches from Supabase (upcoming only, sorted by date)
 - `src/data/seminars.ts` — shared type definitions and constants
 
@@ -29,7 +29,7 @@ Filtering is done client-side via `useMemo` after fetching all seminars. Data is
 
 A single `seminars` table in Supabase (PostgreSQL) with Row Level Security enabled — publicly readable, not writable from the frontend.
 
-Key columns: `title`, `speaker`, `affiliation`, `university`, `department`, `subject_area`, `date`, `time`, `location`, `abstract`, `type` (Seminar/Colloquium), `source_url`, and `external_id` (unique, used for deduplication).
+Key columns: `title`, `speaker`, `affiliation`, `university`, `department`, `subject_area`, `date`, `time`, `location`, `abstract`, `type` (Seminar/Colloquium), `source_url`, `zoom_link`, and `external_id` (unique, used for deduplication).
 
 The `external_id` field is critical: it's a slug derived from the source, date, and title, allowing repeated scrape runs to upsert without creating duplicates.
 
@@ -52,7 +52,7 @@ A Supabase Edge Function (Deno runtime) that:
 | Technion – Computer Science | `cs.technion.ac.il/events/` | `scrapeTechnionCS()` |
 | Weizmann Institute | `weizmann.ac.il/pages/calendar` | `scrapeWeizmann()` |
 
-Each scraper extracts title, speaker, affiliation, date, time, location, abstract, and other metadata. For HUJI Physics, individual event pages are also fetched to retrieve abstracts and lecturer info. The function is idempotent — re-running it updates existing records rather than duplicating them.
+Each scraper extracts title, speaker, affiliation, date, time, location, abstract, zoom link (when present), and other metadata. For HUJI Physics, individual event pages are also fetched to retrieve abstracts, lecturer info, and zoom links. The function is idempotent — re-running it updates existing records rather than duplicating them.
 
 **Required environment variables:**
 - `SUPABASE_URL`
@@ -73,5 +73,5 @@ Scrape trigger (manual HTTP POST)
 User opens app
   → React Query fetches upcoming seminars from Supabase (date >= yesterday, not today — so same-day events remain visible even after they've started)
   → Client-side filtering by search, university, subject, type
-  → Rendered as seminar cards; title links to source, abstract expands on click
+  → Rendered as seminar cards; title links to source, abstract expands on click, zoom link shown when available, calendar icon downloads .ics file
 ```

@@ -40,6 +40,7 @@ A single regex matches each `<h2><a>` block and the date span that follows it. F
 - **Location:** hardcoded to `Manchester Building, Hall 2` (standard venue for the colloquium)
 - **Source URL:** the individual event page link from the `href`
 - **Abstract:** not available on the HUJI events site; stored as empty string
+- **Zoom link:** extracted from the HTML block surrounding each event using a `zoom.us/j/` URL regex
 
 **Known limitations:**
 - Location is hardcoded and may be wrong for special events held elsewhere
@@ -64,6 +65,7 @@ The HTML is split into per-event blocks on the `events_header` class. Within eac
 - **Date/Time:** parsed from `Wednesday, 18.03.2026, 14:00` format
 - **Abstract:** `events_txt_part` div
 - **Source URL:** falls back to the events listing page URL (individual event links not used)
+- **Zoom link:** extracted from the per-event HTML block using a `zoom.us/j/` URL regex
 
 HTML entities (`&amp;`, etc.) are decoded before storing.
 
@@ -93,6 +95,7 @@ The HTML is split into per-event blocks on `views-row`. Within each block:
 - **Speaker:** from the `views-label-field-lecturer-english` table row; text before the first `<br>` is used (discards secondary info like "lunch at 12:45")
 - **Location:** `event-location-wrapper`
 - **Abstract:** `event-abstract-wrapper` (full text already present inline in the listing page HTML)
+- **Zoom link:** extracted from the per-event HTML block using a `zoom.us/j/` URL regex
 
 **Known limitations:**
 - Affiliation is not extracted; defaults to "Weizmann Institute of Science"
@@ -123,6 +126,7 @@ The HTML is split into per-event blocks on `<article ... node-event`. Within eac
 Each event's individual page is always fetched to retrieve:
 - **Location:** `field-name-field-event-location` → `field-item even`
 - **Abstract:** `field-type-text-with-summary` → `field-item even` → `<blockquote>` (present only for some talks)
+- **Zoom link:** extracted from the full individual event page HTML using a `zoom.us/j/` URL regex
 
 **Known limitations:**
 - Affiliation often not available when the speaker is listed only by name in the title
@@ -134,5 +138,5 @@ Each event's individual page is always fetched to retrieve:
 
 1. Check whether the site is server-rendered (view source has content) or JavaScript-rendered (view source is mostly empty). All current sources are server-rendered and can be fetched directly.
 2. Add a scraper function following the existing patterns — split HTML into per-event blocks, then extract fields with targeted regex
-3. Add an entry to `directSources` in the `Deno.serve` handler
+3. Add an entry to `ALL_SOURCES` in the scraper file
 4. Test by triggering the function and checking the database

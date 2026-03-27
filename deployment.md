@@ -71,7 +71,8 @@ Required secrets (set in Supabase dashboard → Project Settings → Edge Functi
 
 Apply via the Supabase dashboard SQL editor, or push migrations:
 ```bash
-supabase db push --project-ref vkaphyqggmuyrzrszgzp
+npx supabase link --project-ref vkaphyqggmuyrzrszgzp  # first time only
+npx supabase db push
 ```
 
 ---

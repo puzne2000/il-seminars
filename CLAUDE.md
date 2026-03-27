@@ -43,7 +43,8 @@ Single-page React app backed by a Supabase PostgreSQL database. Seminar data is 
 **Key files:**
 - `src/pages/Index.tsx` — main page; holds filter state, renders seminar grid
 - `src/components/FilterBar.tsx` — search + dropdowns (university, subject, type)
-- `src/components/SeminarCard.tsx` — individual seminar card; abstract expands on click
+- `src/components/SeminarCard.tsx` — individual seminar card; abstract expands on click, zoom link shown when available, calendar icon downloads an `.ics` file
+- `src/utils/ics.ts` — ICS file generation for "add to calendar" feature
 - `src/hooks/useSeminars.ts` — React Query fetch from Supabase; filters to `date >= yesterday` (yesterday, not today, so same-day events stay visible)
 - `src/data/seminars.ts` — shared `Seminar` type and constants
 - `src/integrations/supabase/client.ts` — Supabase client; replaces `127.0.0.1` with `window.location.hostname` at runtime so the site works when accessed from other devices on the LAN
@@ -53,7 +54,7 @@ Filtering is done client-side via `useMemo` after fetching all upcoming seminars
 
 ## Database
 
-Single `seminars` table. Key columns: `title`, `speaker`, `affiliation`, `university`, `department`, `subject_area`, `date`, `time`, `location`, `abstract`, `type` (Seminar/Colloquium), `source_url`, `external_id` (unique slug for upsert deduplication), `last_scraped_at`.
+Single `seminars` table. Key columns: `title`, `speaker`, `affiliation`, `university`, `department`, `subject_area`, `date`, `time`, `location`, `abstract`, `type` (Seminar/Colloquium), `source_url`, `zoom_link`, `external_id` (unique slug for upsert deduplication), `last_scraped_at`.
 
 RLS is enabled — publicly readable, not writable from the frontend.
 
