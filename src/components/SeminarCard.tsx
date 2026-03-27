@@ -67,7 +67,9 @@ const SeminarCard = ({ seminar, index }: SeminarCardProps) => {
           </span>
           <span className="flex items-center gap-1.5">
             <MapPin className="w-3.5 h-3.5" />
-            {seminar.zoomLink && seminar.location.toLowerCase() === "zoom" ? (
+            {/* If location is a non-physical label (currently only "zoom"), make it a clickable link.
+              Add other terms (e.g. "online") to the condition if needed. */}
+          {seminar.zoomLink && seminar.location.toLowerCase() === "zoom" ? (
               <a
                 href={seminar.zoomLink}
                 target="_blank"
