@@ -4,6 +4,7 @@ import FilterBar from "@/components/FilterBar";
 import SeminarCard from "@/components/SeminarCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSeminars } from "@/hooks/useSeminars";
+import { useJsonLd } from "@/hooks/useJsonLd";
 import type { University, SubjectArea } from "@/data/seminars";
 
 const Index = () => {
@@ -14,6 +15,7 @@ const Index = () => {
   const [zoomOnly, setZoomOnly] = useState(false);
 
   const { data: seminars = [], isLoading, error } = useSeminars();
+  useJsonLd(seminars);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
