@@ -1,4 +1,4 @@
-import { Search } from "lucide-react";
+import { Search, Video } from "lucide-react";
 import { universities, subjectAreas, type University, type SubjectArea } from "@/data/seminars";
 
 interface FilterBarProps {
@@ -75,14 +75,17 @@ const FilterBar = ({
             <option value="Colloquium">Colloquiums</option>
           </select>
 
-          <select
-            value={zoomOnly ? "zoom" : "all"}
-            onChange={(e) => onZoomOnlyChange(e.target.value === "zoom")}
-            className="px-3 py-2 rounded-md bg-secondary text-secondary-foreground text-sm border-0 outline-none focus:ring-2 focus:ring-ring cursor-pointer"
+          <button
+            onClick={() => onZoomOnlyChange(!zoomOnly)}
+            className={`inline-flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium border transition-colors cursor-pointer outline-none focus:ring-2 focus:ring-ring ${
+              zoomOnly
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-secondary text-secondary-foreground border-transparent hover:border-primary/40"
+            }`}
           >
-            <option value="all">Include Non-Zoom</option>
-            <option value="zoom">Zoom Available</option>
-          </select>
+            <Video className="w-4 h-4" />
+            Has Zoom
+          </button>
         </div>
       </div>
     </div>
