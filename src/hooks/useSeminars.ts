@@ -33,6 +33,7 @@ export function useSeminars() {
         type: row.type,
         sourceUrl: row.source_url || undefined,
         zoomLink: row.zoom_link || undefined,
+        possiblyCancelled: row.possibly_cancelled || false,
       }));
     },
     staleTime: 5 * 60 * 1000, // 5 min

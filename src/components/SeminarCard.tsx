@@ -48,6 +48,13 @@ const SeminarCard = ({ seminar, index }: SeminarCardProps) => {
           )}
         </h3>
 
+        {/* Unconfirmed warning */}
+        {seminar.possiblyCancelled && (
+          <p className="text-xs italic text-muted-foreground mb-2">
+            Not found in the latest scrape — please verify.
+          </p>
+        )}
+
         {/* Speaker */}
         <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
           <User className="w-4 h-4 shrink-0" />
