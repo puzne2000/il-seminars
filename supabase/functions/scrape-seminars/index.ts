@@ -516,8 +516,13 @@ async function scrapeIcsFeed(icsUrl: string, opts: IcsFeedOptions): Promise<Scra
       zoom_link = extractZoomLink(description) || extractZoomLink(block);
     }
 
+    // Build a stable external_id from the event's URL path — BGU regenerates UIDs on every feed export
+    const urlSlug = sourceUrl
+      ? new URL(sourceUrl).pathname.replace(/\//g, "-").replace(/^-/, "").replace(/[^a-zA-Z0-9-]/g, "")
+      : `${date}-${time.replace(":", "")}`;
+
     seminars.push({
-      external_id: `${opts.id_prefix}-${uid}`,
+      external_id: `${opts.id_prefix}-${urlSlug}`,
       title,
       speaker,
       affiliation: opts.affiliation,
