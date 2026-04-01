@@ -1,4 +1,4 @@
-import { Search, Video } from "lucide-react";
+import { Search, Video, CalendarCheck } from "lucide-react";
 import { universities, subjectAreas, type University, type SubjectArea } from "@/data/seminars";
 
 interface FilterBarProps {
@@ -12,6 +12,8 @@ interface FilterBarProps {
   onTypeChange: (value: "All" | "Seminar" | "Colloquium") => void;
   zoomOnly: boolean;
   onZoomOnlyChange: (value: boolean) => void;
+  todayOnly: boolean;
+  onTodayOnlyChange: (value: boolean) => void;
 }
 
 const FilterBar = ({
@@ -25,6 +27,8 @@ const FilterBar = ({
   onTypeChange,
   zoomOnly,
   onZoomOnlyChange,
+  todayOnly,
+  onTodayOnlyChange,
 }: FilterBarProps) => {
   return (
     <div className="bg-card rounded-lg shadow-card p-4 sm:p-6 mb-8">
@@ -85,6 +89,18 @@ const FilterBar = ({
           >
             <Video className="w-4 h-4" />
             Has Zoom
+          </button>
+
+          <button
+            onClick={() => onTodayOnlyChange(!todayOnly)}
+            className={`inline-flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium border transition-colors cursor-pointer outline-none focus:ring-2 focus:ring-ring ${
+              todayOnly
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-secondary text-secondary-foreground border-transparent hover:border-primary/40"
+            }`}
+          >
+            <CalendarCheck className="w-4 h-4" />
+            Today
           </button>
         </div>
       </div>

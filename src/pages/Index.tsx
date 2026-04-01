@@ -13,9 +13,12 @@ const Index = () => {
   const [subject, setSubject] = useState<SubjectArea | "All">("All");
   const [type, setType] = useState<"All" | "Seminar" | "Colloquium">("All");
   const [zoomOnly, setZoomOnly] = useState(false);
+  const [todayOnly, setTodayOnly] = useState(false);
 
   const { data: seminars = [], isLoading, error } = useSeminars();
   useJsonLd(seminars);
+
+  const today = new Date().toISOString().slice(0, 10);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -24,10 +27,11 @@ const Index = () => {
       if (subject !== "All" && s.subjectArea !== subject) return false;
       if (type !== "All" && s.type !== type) return false;
       if (zoomOnly && !s.zoomLink) return false;
+      if (todayOnly && s.date !== today) return false;
       if (q && !s.title.toLowerCase().includes(q) && !s.speaker.toLowerCase().includes(q) && !s.abstract.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [search, university, subject, type, zoomOnly, seminars]);
+  }, [search, university, subject, type, zoomOnly, todayOnly, today, seminars]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -79,6 +83,8 @@ const Index = () => {
           onTypeChange={setType}
           zoomOnly={zoomOnly}
           onZoomOnlyChange={setZoomOnly}
+          todayOnly={todayOnly}
+          onTodayOnlyChange={setTodayOnly}
         />
 
         {/* Results count */}
