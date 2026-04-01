@@ -25,7 +25,8 @@ Each event is a `VEVENT` block. The relevant fields are:
 | `DESCRIPTION` | Abstract text (backslash-escaped) | `abstract` |
 | `LOCATION` | Room number (e.g. `-101`) **or** a Zoom meeting URL | `location` / `zoom_link` |
 | `URL;VALUE=URI` | Link to the individual event page | `source_url` |
-| `UID` | Stable UUID, unique per event | `external_id` (with prefix) |
+| `URL;VALUE=URI` (path) | URL path of the event page | `external_id` (with prefix) — see note below |
+| `UID` | UUID per event — **not used** (BGU regenerates UIDs on every export) | — |
 
 **Line folding:** ICS files fold long lines at 75 characters (CRLF + space). The
 scraper unfolds these before parsing.
@@ -57,9 +58,13 @@ Add a single entry to `ALL_SOURCES` in `supabase/functions/scrape-seminars/index
 },
 ```
 
-The `id_prefix` is prepended to the event's `UID` to form the `external_id` used
-for upsert deduplication. Use a short, stable, unique string (e.g. `bgu-pet`,
-`bgu-agt`, `bgu-prob`).
+The `id_prefix` is prepended to a slug derived from the event's `URL` path to form
+the `external_id` used for upsert deduplication. Use a short, stable, unique string
+(e.g. `bgu-pet`, `bgu-agt`, `bgu-prob`).
+
+> **Note:** BGU's server regenerates a new `UID` for every event on each feed export,
+> so UIDs cannot be used for deduplication. The scraper uses the URL path instead,
+> which is stable across fetches.
 
 ## Known BGU ICS feeds
 

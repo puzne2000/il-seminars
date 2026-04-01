@@ -136,6 +136,9 @@ Each event's individual page is always fetched to retrieve:
 
 ## Adding a new source
 
+**If the site publishes an iCalendar (`.ics`) feed** (e.g. BGU Mathematics seminars), use the shared `scrapeIcsFeed()` function — no new scraper function needed. See `docs/bgu-ics-seminars.md` for the full pattern.
+
+**Otherwise:**
 1. Check whether the site is server-rendered (view source has content) or JavaScript-rendered (view source is mostly empty). All current sources are server-rendered and can be fetched directly.
 2. Add a scraper function following the existing patterns — split HTML into per-event blocks, then extract fields with targeted regex
 3. Add an entry to `ALL_SOURCES` in the scraper file

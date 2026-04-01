@@ -84,7 +84,9 @@ HUJI's servers block cloud IP ranges, so the scraper cannot run as a remote sche
 `scrape_and_sync.sh`:
 1. Starts local Supabase if not already running
 2. Triggers the scraper against the local database
-3. Upserts all scraped records to the remote Supabase via REST API (deduplication via `external_id`)
+3. Marks all future remote seminars as `possibly_cancelled = true`
+4. Upserts scraped records to the remote Supabase via REST API (dedup via `external_id`; sets `possibly_cancelled = false` for confirmed talks)
+5. Deletes remote records where `date` or `last_scraped_at` is older than 30 days
 
 Scheduled via local cron (Mondays and Thursdays at 8pm UTC):
 ```

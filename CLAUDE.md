@@ -54,7 +54,7 @@ Filtering is done client-side via `useMemo` after fetching all upcoming seminars
 
 ## Database
 
-Single `seminars` table. Key columns: `title`, `speaker`, `affiliation`, `university`, `department`, `subject_area`, `date`, `time`, `location`, `abstract`, `type` (Seminar/Colloquium), `source_url`, `zoom_link`, `external_id` (unique slug for upsert deduplication), `last_scraped_at`.
+Single `seminars` table. Key columns: `title`, `speaker`, `affiliation`, `university`, `department`, `subject_area`, `date`, `time`, `location`, `abstract`, `type` (Seminar/Colloquium), `source_url`, `zoom_link`, `external_id` (unique slug for upsert deduplication), `last_scraped_at`, `possibly_cancelled` (bool, set by `scrape_and_sync.sh` for talks not seen in the latest scrape).
 
 RLS is enabled — publicly readable, not writable from the frontend.
 
