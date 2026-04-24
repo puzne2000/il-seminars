@@ -1,1 +1,0 @@
-ALTER TABLE public.seminars ADD COLUMN IF NOT EXISTS last_scraped_at TIMESTAMPTZ;

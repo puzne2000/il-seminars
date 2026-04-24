@@ -1,9 +1,8 @@
 #!/bin/bash
-LOG=/tmp/il-seminars-functions.log
-START_LINE=$(wc -l < "$LOG" 2>/dev/null || echo 0)
-
-curl -X POST http://127.0.0.1:54321/functions/v1/scrape-seminars
-
-echo ""
-echo "--- Function logs ---"
-tail -n +$((START_LINE + 1)) "$LOG"
+# Scrape seminar sources and write public/seminars.json.
+# Usage: ./run_scraper.sh [source-key]
+# source-key is optional — omit to scrape all sources.
+# Valid keys: huji-math, technion-cs, weizmann, huji-physics, bgu-pet, bgu-colloquium
+set -e
+cd "$(dirname "$0")"
+npx deno run --allow-net --allow-read --allow-write --allow-env scraper.ts "$@"

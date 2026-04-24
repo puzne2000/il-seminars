@@ -1,1 +1,0 @@
-ALTER TABLE seminars ADD COLUMN IF NOT EXISTS zoom_link TEXT;

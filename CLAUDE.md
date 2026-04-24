@@ -5,19 +5,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Local Development
 
 ```bash
-./start.sh   # starts Docker, Supabase backend, edge functions server, and Vite frontend
-./stop.sh    # stops all of the above
-./run_scraper.sh  # triggers a scrape and prints new log lines from /tmp/il-seminars-functions.log
+./start.sh        # starts Vite dev server
+./stop.sh         # stops it
+./run_scraper.sh  # scrapes all sources and writes public/seminars.json
 ```
 
-Frontend: `http://localhost:8080` | Supabase Studio: `http://127.0.0.1:54323`
+Frontend: `http://localhost:8080`
 
-Logs: `/tmp/il-seminars-frontend.log`, `/tmp/il-seminars-functions.log`
-
-Direct DB access:
-```bash
-docker exec supabase_db_wzbkmepgwihppoipfarb psql -U postgres
-```
+Logs: `/tmp/il-seminars-frontend.log`
 
 ## Frontend Commands
 
@@ -29,40 +24,36 @@ npm run test       # Vitest (run once)
 npm run test:watch # Vitest (watch mode)
 ```
 
-## Environment
-
-- `.env` — production Supabase credentials (committed; used by Lovable-hosted site)
-- `.env.local` — local Supabase credentials (gitignored; takes precedence over `.env` in dev)
-
-**Never overwrite `.env` with local credentials** — it would break the production site.
-
 ## Architecture
 
-Single-page React app backed by a Supabase PostgreSQL database. Seminar data is populated by a Supabase Edge Function (Deno) that scrapes university websites.
+Single-page React app. Seminar data is stored in `public/seminars.json` (committed to the repo) and served as a static file. The scraper is a standalone Deno script (`scraper.ts`) that scrapes university websites and writes the JSON file directly.
+
+**Deploy workflow:** run `./scrape_and_sync.sh` (or `./run_scraper.sh`) → commit `public/seminars.json` → push → Lovable auto-deploys.
 
 **Key files:**
 - `src/pages/Index.tsx` — main page; holds filter state, renders seminar grid
 - `src/components/FilterBar.tsx` — search + dropdowns (university, subject, type)
 - `src/components/SeminarCard.tsx` — individual seminar card; abstract expands on click, zoom link shown when available, calendar icon downloads an `.ics` file
 - `src/utils/ics.ts` — ICS file generation for "add to calendar" feature
-- `src/hooks/useSeminars.ts` — React Query fetch from Supabase; filters to `date >= yesterday` (yesterday, not today, so same-day events stay visible)
+- `src/hooks/useSeminars.ts` — React Query fetch from `/seminars.json`; filters to `date >= yesterday` (yesterday, not today, so same-day events stay visible)
 - `src/data/seminars.ts` — shared `Seminar` type and constants
-- `src/integrations/supabase/client.ts` — Supabase client; replaces `127.0.0.1` with `window.location.hostname` at runtime so the site works when accessed from other devices on the LAN
-- `supabase/functions/scrape-seminars/index.ts` — the scraper edge function
+- `scraper.ts` — standalone Deno script; scrapes all sources and writes `public/seminars.json`
+- `public/seminars.json` — the seminar data served to the frontend
 
 Filtering is done client-side via `useMemo` after fetching all upcoming seminars. Data is cached for 5 minutes.
 
-## Database
-
-Single `seminars` table. Key columns: `title`, `speaker`, `affiliation`, `university`, `department`, `subject_area`, `date`, `time`, `location`, `abstract`, `type` (Seminar/Colloquium), `source_url`, `zoom_link`, `external_id` (unique slug for upsert deduplication), `last_scraped_at`, `possibly_cancelled` (bool, set by `scrape_and_sync.sh` for talks not seen in the latest scrape).
-
-RLS is enabled — publicly readable, not writable from the frontend.
-
 ## Scraper
 
-`supabase/functions/scrape-seminars/index.ts` — Deno edge function triggered by HTTP POST. Fetches each source directly (plain HTML GET + regex parsing), upserts into `seminars` via service role key, then deletes records with `last_scraped_at` older than 7 days.
+`scraper.ts` — Deno script. Run locally (university websites may block cloud IPs).
 
-Each scraper logs every URL it fetches to stdout (visible in `/tmp/il-seminars-functions.log`).
+```bash
+deno run --allow-net --allow-read --allow-write --allow-env scraper.ts            # all sources
+deno run --allow-net --allow-read --allow-write --allow-env scraper.ts huji-math  # one source
+```
+
+Valid source keys: `huji-math`, `technion-cs`, `weizmann`, `huji-physics`, `bgu-pet`, `bgu-colloquium`
+
+The scraper writes camelCase `Seminar` objects (matching `src/data/seminars.ts`) directly to `public/seminars.json`. On a full scrape, future seminars not found in the latest scrape are carried over with `possiblyCancelled: true`. On a partial (single-source) scrape, only entries from that source are updated; other entries are preserved unchanged.
 
 **HUJI Mathematics** paginates through `?page=0`, `?page=1`, etc., stopping when a page yields no upcoming events (the site does not sort reliably by date).
 
@@ -71,4 +62,4 @@ See `docs/scraping.md` for detailed per-source parsing notes and instructions fo
 ## Branches
 
 - `main` — synced with Lovable; auto-deploys to the production site on every push
-- `local-branch` — local-only changes that should not be pushed to Lovable (e.g. LAN hostname fix in the Supabase client)
+- `local-branch` — local-only changes that should not be pushed to Lovable

@@ -1,10 +1,7 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+// Standalone scraper — replaces the Supabase edge function.
+// Run: deno run --allow-net --allow-read --allow-write --allow-env scraper.ts [source-key]
+// Optional source keys: huji-math, technion-cs, weizmann, huji-physics, bgu-pet, bgu-colloquium
+// FIRECRAWL_API_KEY env var is only needed if scrapeWithFirecrawl() is used (no current source calls it).
 
 interface ScrapedSeminar {
   external_id: string;
@@ -21,7 +18,24 @@ interface ScrapedSeminar {
   type: "Seminar" | "Colloquium";
   source_url?: string;
   zoom_link?: string;
-  last_scraped_at?: string;
+}
+
+interface Seminar {
+  id: string;
+  title: string;
+  speaker: string;
+  affiliation: string;
+  university: string;
+  department: string;
+  subjectArea: string;
+  date: string;
+  time: string;
+  location: string;
+  abstract: string;
+  type: string;
+  sourceUrl?: string;
+  zoomLink?: string;
+  possiblyCancelled?: boolean;
 }
 
 function extractZoomLink(html: string): string | undefined {
@@ -587,104 +601,100 @@ const ALL_SOURCES: Record<string, { url: string; scraper: (url: string) => Promi
   },
 };
 
-async function scrapeSource(
-  sourceKey: string,
-  source: { url: string; scraper: (url: string) => Promise<ScrapedSeminar[]> },
-  supabase: ReturnType<typeof createClient>,
-  scrapeTime: string,
-): Promise<number> {
-  console.log(`Scraping (direct): ${source.url}`);
-  const seminars = (await source.scraper(source.url)).map((s) => ({ ...s, last_scraped_at: scrapeTime }));
-  console.log(`[${sourceKey}] Parsed ${seminars.length} seminars`);
+// ── Output helpers ────────────────────────────────────────────────────────────
 
-  if (seminars.length > 0) {
-    const { error } = await supabase
-      .from("seminars")
-      .upsert(seminars, { onConflict: "external_id" });
-
-    if (error) {
-      console.error(`[${sourceKey}] Error upserting:`, error);
-      return 0;
-    }
-    return seminars.length;
-  }
-  return 0;
+function toFrontendSeminar(s: ScrapedSeminar, possiblyCancelled?: true): Seminar {
+  return {
+    id: s.external_id,
+    title: s.title,
+    speaker: s.speaker,
+    affiliation: s.affiliation,
+    university: s.university,
+    department: s.department,
+    subjectArea: s.subject_area,
+    date: s.date,
+    time: s.time,
+    location: s.location,
+    abstract: s.abstract,
+    type: s.type,
+    ...(s.source_url && { sourceUrl: s.source_url }),
+    ...(s.zoom_link && { zoomLink: s.zoom_link }),
+    ...(possiblyCancelled && { possiblyCancelled: true }),
+  };
 }
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+const JSON_PATH = "./public/seminars.json";
 
+async function loadExisting(): Promise<Seminar[]> {
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("DB_SERVICE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-    const scrapeTime = new Date().toISOString();
-
-    // Allow scraping a single source via ?source=huji-math
-    const url = new URL(req.url);
-    const sourceParam = url.searchParams.get("source");
-
-    console.log(`Starting seminar scrape... ${sourceParam ? `(source: ${sourceParam})` : "(all sources)"}`);
-
-    let totalUpserted = 0;
-    const sourcesToScrape = sourceParam
-      ? { [sourceParam]: ALL_SOURCES[sourceParam] }
-      : ALL_SOURCES;
-
-    // Scrape all selected sources in parallel
-    const results = await Promise.allSettled(
-      Object.entries(sourcesToScrape).map(async ([key, source]) => {
-        if (!source) throw new Error(`Unknown source: ${key}`);
-        return scrapeSource(key, source, supabase, scrapeTime);
-      })
-    );
-
-    for (const result of results) {
-      if (result.status === "fulfilled") {
-        totalUpserted += result.value;
-      } else {
-        console.error("Source failed:", result.reason);
-      }
-    }
-
-    // Delete seminars not seen by the scraper in over a week
-    if (!sourceParam) {
-      const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      const { error: deleteError, count: deleteCount } = await supabase
-        .from("seminars")
-        .delete({ count: "exact" })
-        .lt("last_scraped_at", cutoff)
-        .not("last_scraped_at", "is", null);
-
-      if (deleteError) {
-        console.error("Error deleting stale seminars:", deleteError);
-      } else {
-        console.log(`Deleted ${deleteCount ?? 0} stale seminars.`);
-      }
-    }
-
-    console.log(`Scrape complete. Upserted ${totalUpserted} seminars.`);
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message: `Scraped and upserted ${totalUpserted} seminars`,
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  } catch (error) {
-    console.error("Scrape error:", error);
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    return JSON.parse(await Deno.readTextFile(JSON_PATH));
+  } catch {
+    return [];
   }
-});
+}
+
+// ── Main ──────────────────────────────────────────────────────────────────────
+
+async function main() {
+  const today = new Date().toISOString().slice(0, 10);
+  const sourceArg = Deno.args[0]; // optional source key, e.g. "huji-math"
+
+  const existing = await loadExisting();
+
+  const sourcesToScrape = sourceArg
+    ? { [sourceArg]: ALL_SOURCES[sourceArg] }
+    : ALL_SOURCES;
+
+  if (sourceArg && !ALL_SOURCES[sourceArg]) {
+    console.error(`Unknown source: "${sourceArg}". Valid keys: ${Object.keys(ALL_SOURCES).join(", ")}`);
+    Deno.exit(1);
+  }
+
+  console.log(`Scraping ${sourceArg ? `[${sourceArg}]` : "all sources"}...`);
+
+  const freshRaw: ScrapedSeminar[] = [];
+  const results = await Promise.allSettled(
+    Object.entries(sourcesToScrape).map(async ([key, source]) => {
+      const items = await source.scraper(source.url);
+      console.log(`[${key}] found ${items.length}`);
+      return items;
+    })
+  );
+  for (const r of results) {
+    if (r.status === "fulfilled") freshRaw.push(...r.value);
+    else console.error("Source failed:", r.reason);
+  }
+
+  const futureFresh = freshRaw.filter((s) => s.date >= today);
+  const output: Seminar[] = [];
+
+  if (sourceArg) {
+    // Partial scrape: update entries found by this source, keep all other existing entries unchanged.
+    // No possibly_cancelled logic — we only scraped one source.
+    const freshById = new Map(futureFresh.map((s) => [s.external_id, s]));
+    const existingFuture = existing.filter((s) => s.date >= today);
+    const merged = new Map<string, Seminar>(existingFuture.map((s) => [s.id, s]));
+    for (const s of futureFresh) merged.set(s.external_id, toFrontendSeminar(s));
+    output.push(...merged.values());
+  } else {
+    // Full scrape: fresh results + carry over existing future entries not found (mark as possibly cancelled)
+    const newIds = new Set(futureFresh.map((s) => s.external_id));
+    for (const s of futureFresh) output.push(toFrontendSeminar(s));
+    for (const s of existing) {
+      if (s.date >= today && !newIds.has(s.id)) {
+        output.push({ ...s, possiblyCancelled: true });
+      }
+    }
+  }
+
+  output.sort((a, b) => a.date.localeCompare(b.date));
+
+  await Deno.writeTextFile(JSON_PATH, JSON.stringify(output, null, 2) + "\n");
+  console.log(`\nWrote ${output.length} seminars to public/seminars.json`);
+  if (!sourceArg) {
+    const cancelled = output.filter((s) => s.possiblyCancelled).length;
+    if (cancelled) console.log(`  (${cancelled} marked possibly cancelled — not seen in latest scrape)`);
+  }
+}
+
+main().catch((e) => { console.error(e); Deno.exit(1); });
