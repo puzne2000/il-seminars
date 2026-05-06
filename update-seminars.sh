@@ -21,8 +21,8 @@
 # TYPICAL WORKFLOW
 #   Run this whenever you want to refresh the site data:
 #     ./update-seminars.sh
-#   Lovable auto-deploys on every push to main, so the site updates within
-#   a minute or two after the push completes.
+#   The script commits, pushes, then builds and deploys to Cloudflare Pages
+#   directly via Wrangler (Lovable does not auto-deploy on direct git pushes).
 #
 # NOTE ON FORCE PUSH
 #   Amending a commit that was already pushed rewrites history and requires a
@@ -68,5 +68,19 @@ fi
 echo "Pushing..."
 git push $PUSH_FLAGS
 
+# ── 6. Build and deploy to Cloudflare Pages ───────────────────────────────────
+echo "Building..."
+npm run build --silent
+
+echo "Deploying to Cloudflare Pages..."
+if ! npx wrangler pages deploy dist --project-name il-seminars --branch main; then
+  echo ""
+  echo "ERROR: Wrangler deploy failed. If you see an authentication or OAuth error above, fix it with:"
+  echo "  npx wrangler login"
+  echo "Then re-run: ./update-seminars.sh"
+  echo "(The git push already succeeded, so only the deploy step needs to be retried.)"
+  exit 1
+fi
+
 echo ""
-echo "Done. Site will deploy in ~1 minute."
+echo "Done. Site is live."
