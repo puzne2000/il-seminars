@@ -1,6 +1,22 @@
 import { useEffect } from "react";
 import type { Seminar } from "@/data/seminars";
 
+const universityUrls: Record<string, string> = {
+  "Hebrew University": "https://www.huji.ac.il",
+  "Technion": "https://www.technion.ac.il",
+  "Tel Aviv University": "https://www.tau.ac.il",
+  "Ben-Gurion University": "https://www.bgu.ac.il",
+  "Weizmann Institute": "https://www.weizmann.ac.il",
+  "Bar-Ilan University": "https://www.biu.ac.il",
+  "University of Haifa": "https://www.haifa.ac.il",
+};
+
+function addOneHour(date: string, time: string): string {
+  const [h, m] = time.split(":").map(Number);
+  const endH = (h + 1) % 24;
+  return `${date}T${String(endH).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
 export function useJsonLd(seminars: Seminar[]) {
   useEffect(() => {
     const events = seminars
@@ -9,6 +25,11 @@ export function useJsonLd(seminars: Seminar[]) {
         "@type": "Event",
         "name": s.title,
         "startDate": `${s.date}T${s.time}`,
+        "endDate": addOneHour(s.date, s.time),
+        "eventStatus": "https://schema.org/EventScheduled",
+        "eventAttendanceMode": s.zoomLink
+          ? "https://schema.org/MixedEventAttendanceMode"
+          : "https://schema.org/OfflineEventAttendanceMode",
         "location": {
           "@type": "Place",
           "name": s.location,
@@ -17,10 +38,17 @@ export function useJsonLd(seminars: Seminar[]) {
         "organizer": {
           "@type": "Organization",
           "name": s.department,
+          ...(universityUrls[s.university] ? { "url": universityUrls[s.university] } : {}),
         },
         "performer": {
           "@type": "Person",
           "name": s.speaker,
+        },
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "ILS",
+          "availability": "https://schema.org/InStock",
         },
         ...(s.abstract ? { "description": s.abstract } : {}),
         ...(s.sourceUrl ? { "url": s.sourceUrl } : {}),
