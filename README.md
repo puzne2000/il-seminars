@@ -20,7 +20,7 @@ No backend or database required.
 ./update-seminars.sh
 ```
 
-This scrapes all sources, commits `public/seminars.json` (amending the previous update commit if there is one, so they don't pile up), and pushes. The site deploys automatically within ~1 minute.
+This scrapes all sources, commits `public/seminars.json` (amending the previous update commit if there is one, so they don't pile up), pushes, and deploys to Cloudflare Pages via Wrangler.
 
 To scrape a single source:
 ```bash
@@ -55,7 +55,7 @@ Logs: `/tmp/il-seminars-frontend.log`
 |--------|-------------|
 | `./update-seminars.sh` | Scrape → commit (amending if last commit was also an update) → push |
 | `./run_scraper.sh` | Scrape and write `public/seminars.json` only (no git) |
-| `./scrape_and_sync.sh` | Same as `run_scraper.sh`, with a reminder to commit and push |
+| `./scrape_and_sync.sh` | Alias for `update-seminars.sh` |
 | `./start.sh` | Start Vite dev server |
 | `./stop.sh` | Stop it |
 
