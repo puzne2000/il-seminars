@@ -79,6 +79,21 @@
     "possiblyCancelled": true
   },
   {
+    "id": "technion-cs-2026-10-28-theory-seminar-autoregressive",
+    "title": "Theory Seminar: Autoregressive Learning with and without Chain-of-Though",
+    "speaker": "Ilan Doron-Arad",
+    "affiliation": "Technion",
+    "university": "Technion",
+    "department": "Taub Faculty of Computer Science",
+    "subjectArea": "Computer Science",
+    "date": "2026-10-28",
+    "time": "13:00",
+    "location": "Taub 201",
+    "abstract": "Large language models (LLMs) are, on an abstract level, autoregressive generators: given a prompt (input string), they assign a next-token distribution depending on the context, sample a token from this distribution, append it to the context, and repeat with the expanded context. Thus, even when the task is not inherently iterative, the output is produced by an iterated next-token process. A recent line of theoretical work abstracts this process through autoregressive chain-of-...\n                          [ Full version ]",
+    "type": "Seminar",
+    "sourceUrl": "https://www.cs.technion.ac.il/events/"
+  },
+  {
     "id": "huji-2026-10-28-logic-seminar---antongiulio-fo",
     "title": "Logic Seminar - Antongiulio Fornasiero",
     "speaker": "Antongiulio Fornasiero",
@@ -572,6 +587,21 @@
     "type": "Seminar",
     "sourceUrl": "https://phys.huji.ac.il/event/gal-tuvia-harvard-candidate",
     "possiblyCancelled": true
+  },
+  {
+    "id": "technion-cs-2026-12-01-beyond-the-screen-open-theore",
+    "title": "Beyond the Screen: Open Theoretical and Algorithmic Frontiers in Physical AI",
+    "speaker": "Guy Altagar (Head of Physical AI at the Israeli National AI Directorate)",
+    "affiliation": "Technion",
+    "university": "Technion",
+    "department": "Taub Faculty of Computer Science",
+    "subjectArea": "Computer Science",
+    "date": "2026-12-01",
+    "time": "14:30",
+    "location": "Taub 337&nbsp;",
+    "abstract": "While digital AI and large multimodal models have achieved massive scaling laws in virtual spaces, grounding artificial intelligence in the unstructured, non-deterministic physical world exposes severe foundational bottlenecks. Physical AI -the synthesis of embodied robotics, multi-modal perception, foundation world models, and real-time control- cannot rely merely on scaling compute or self-supervised text scraping. The transition to embodied agents operating safely at human-l...\n                          [ Full version ]",
+    "type": "Seminar",
+    "sourceUrl": "https://www.cs.technion.ac.il/events/"
   },
   {
     "id": "bgu-colloquium-en-fall2027-seminars-colloquium-meetings-2026-12-15",
