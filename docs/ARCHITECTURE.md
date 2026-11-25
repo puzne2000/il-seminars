@@ -60,7 +60,7 @@ into three kinds:
 
 | Kind | Sources | Function(s) |
 |---|---|---|
-| HTML pages parsed with regular expressions | HUJI Mathematics, HUJI Physics (plus one page per event for abstracts), Technion CS | `scrapeHujiColloquiums()`, `scrapeHujiPhysics()`, `scrapeTechnionCS()` |
+| HTML pages parsed with regular expressions | HUJI Mathematics, HUJI Physics (plus one page per event for abstracts), Technion CS, Bar-Ilan Mathematics (month calendar, then one page per talk) | `scrapeHujiColloquiums()`, `scrapeHujiPhysics()`, `scrapeTechnionCS()`, `scrapeBarIlanMath()` |
 | JSON | Weizmann (`/pages/news/events/ajax/events?month=…`, current month and the next three) | `scrapeWeizmann()` |
 | iCalendar feeds | BGU Mathematics (5 seminars), Technion Mathematics, TAU Mathematics (15 Google Calendars) | `scrapeIcsFeed()`, `scrapeTechnionMath()`, `scrapeGoogleCalendarSeminars()` |
 

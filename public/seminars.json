@@ -108,6 +108,36 @@
     "sourceUrl": "https://calendar.google.com/calendar/embed?src=tau.math.seminars%40gmail.com"
   },
   {
+    "id": "biu-math-4052",
+    "title": "Random Drinfeld modules",
+    "speaker": "Alexei Entin",
+    "affiliation": "Tel Aviv University",
+    "university": "Bar-Ilan University",
+    "department": "Algebra",
+    "subjectArea": "Mathematics",
+    "date": "2026-11-25",
+    "time": "10:30",
+    "location": "Building 504, Room 5, Bar-Ilan University",
+    "abstract": "Drinfeld modules are the dark cousins of elliptic curves residing in the realm of function fields. I will give a brief introduction to these fascinating objects and then discuss recent work on random Drinfeld modules and their Galois representations. Based on joint work with Himanshu Sharma.",
+    "type": "Seminar",
+    "sourceUrl": "https://math.biu.ac.il/en/node/4052"
+  },
+  {
+    "id": "biu-math-4055",
+    "title": "Network-driven discovery of therapeutics targeting the hallmarks of aging",
+    "speaker": "Bnaya Gross",
+    "affiliation": "BIU",
+    "university": "Bar-Ilan University",
+    "department": "Applied Math Seminar",
+    "subjectArea": "Mathematics",
+    "date": "2026-11-25",
+    "time": "12:15",
+    "location": "Building 404, Room 68, Bar-Ilan University",
+    "abstract": "Despite the thousands of genes implicated in age-related phenotypes, effective interventions for aging remain elusive due to the multifactorial nature of longevity and the interconnectedness of molecular components involved. Network medicine addresses this complexity using mathematical and computational approaches rooted in network science, mapping disease-associated genes onto the human interactome, the network of physical interactions between proteins, to identify potential therapeutics. It has shown that disease genes cluster into identifiable network modules, and that a drug’s therapeutic potential can be predicted by quantifying its network proximity to those modules [1–3]. In a recent study [4], we applied this framework to aging. We mapped 2,358 longevity-associated genes onto the human interactome and found that the genes linked to each hallmark of aging [5] form a connected subgraph, or hallmark module. This allowed us to quantify the network proximity of 6,442 compounds to each hallmark using graph-based measures. We then introduced pAGE, a transcription-based metric that quantifies whether drug-induced expression changes reinforce or counteract the known age-related expression changes within each hallmark module. Combining network proximity with pAGE, we developed a quantitative framework to identify repurposable drug candidates for specific hallmarks of aging. The framework is falsifiable and interpretable, revealing the molecular mechanisms through which drugs modulate each hallmark. Finally, I will present our ongoing extension of this framework to dietary interventions. Food contains thousands of bioactive compounds with largely unmapped effects on human biology. Applying the same network-based approach, we identify food-derived compounds that may modulate the hallmarks of aging. I will conclude by discussing how mathematical modeling and network-based methods can connect genomic discoveries to therapeutics, from approved drugs to everyday nutrition, and open new directions for aging research. References 1. Barabási, A.-L., Gulbahce, N. &amp; Loscalzo, J. Network medicine: a network-based approach to human disease. Nat. Rev. Genet. 12, 56–68 (2011). 2. Menche, J., Sharma, A., Kitsak, M., Ghiassian, S. D., Vidal, M., Loscalzo, J., & Barabási, A. L.(2015). Uncovering disease-disease relationships through the incomplete interactome. Science, 347(6224), 1257601.‏ 3. Guney, E., Menche, J., Vidal, M., &amp; Barábasi, A. L. (2016). Network-based in silico drug efficacy screening. Nature communications, 7(1), 10331.‏ 4. Gross, B., Ehlert, J., Gladyshev, V. N., Loscalzo, J., & Barabási, A. L. (2026). Network-driven discovery of repurposable drugs targeting hallmarks of aging. Nature Aging, 6(7), 1516–1531. 5. López-Otín, C., Blasco, M. A., Partridge, L., Serrano, M., &amp; Kroemer, G. (2013). The hallmarks of aging. Cell, 153(6), 1194-1217.‏",
+    "type": "Seminar",
+    "sourceUrl": "https://math.biu.ac.il/en/node/4055"
+  },
+  {
     "id": "huji-2026-11-26-colloquium-doron-puder-tau",
     "title": "Colloquium: Doron Puder (TAU)",
     "speaker": "Doron Puder",
@@ -319,6 +349,21 @@
     "sourceUrl": "https://calendar.google.com/calendar/embed?src=785lg6fjgu1iheq1b1vcqgu9bc%40group.calendar.google.com"
   },
   {
+    "id": "biu-math-4054",
+    "title": "Diamond on trees, part 8",
+    "speaker": "Carlos Lopez",
+    "affiliation": "BIU",
+    "university": "Bar-Ilan University",
+    "department": "Set Theory",
+    "subjectArea": "Mathematics",
+    "date": "2026-11-26",
+    "time": "14:00",
+    "location": "Building 203, Room 226, Bar-Ilan University",
+    "abstract": "We continue",
+    "type": "Seminar",
+    "sourceUrl": "https://math.biu.ac.il/en/node/4054"
+  },
+  {
     "id": "technion-cs-2026-11-29-x-basis-initialization-in-comp",
     "title": "X-Basis Initialization in Compressed QAOA: From Random Ensembles to Structured Selection",
     "speaker": "Abed Semre",
@@ -423,6 +468,21 @@
     "abstract": "We will introduce log-concave moment measures and show how they can be used for proving sharp thin shell bounds for high-dimensional random vectors. Joint work with Y. Chen",
     "type": "Seminar",
     "sourceUrl": "https://calendar.google.com/calendar/embed?src=6dbc3bd81e44a449165b2eaed6a4a96a19e6b0dd51902c1aebebec2a60f95fb8%40group.calendar.google.com"
+  },
+  {
+    "id": "biu-math-4057",
+    "title": "Long–range order in the hard-core model on bipartite graphs",
+    "speaker": "Daniel Hadas",
+    "affiliation": "Tel-Aviv University",
+    "university": "Bar-Ilan University",
+    "department": "Combinatorics",
+    "subjectArea": "Mathematics",
+    "date": "2026-11-29",
+    "time": "14:05",
+    "location": "Zoom",
+    "abstract": "Consider the hard-core model with fugacity \\lambda on the d-dimensional hypercube graph. For \\lambda > (C log d)/d, as d \\to \\infty, the ratio between the numbers of occupied sites in the two bipartition classes does not tend to 1. In a recent joint work with Ron Peled, we proved this theorem and a generalization of it to bipartite regular graphs with certain expansion properties. I will start the talk by putting the problem in the context of first-order phase transitions in classical statistical mechanics - a topic which is our main motivation.",
+    "type": "Seminar",
+    "sourceUrl": "https://math.biu.ac.il/en/node/4057"
   },
   {
     "id": "huji-2026-11-30-ntag-sergey-rybakov-ben-gur",
@@ -788,6 +848,36 @@
     "abstract": "Let Fₙ denote the free group of rank n ≥ 2, equipped with the bi-invariant word metric associated with the standard generating set. I will present the following results: * Algebraic rigidity: A homomorphism Fₘ → Fₙ is a quasi-isometry if and only if it is an isomorphism. * Quasi-algebraic flexibility: There exists a quasi-homomorphism Fₘ → Fₙ which is a quasi-isometry. Consequently, asymptotic cones of non-abelian free groups of finite rank are Lipschitz isomorphic complete metric groups. Also, coarse groups associated with those bi-invariant metrics are isomorphic. * Torsion in the cone: There exist elements g ∈ F₂ such that ‖g²‖ is much smaller than ‖g‖.",
     "type": "Seminar",
     "sourceUrl": "https://calendar.google.com/calendar/embed?src=tau.math.seminars%40gmail.com"
+  },
+  {
+    "id": "biu-math-4056",
+    "title": "Central products of Cayley-Dickson loops",
+    "speaker": "Adam Chapman",
+    "affiliation": "Academic College of Tel Aviv-Yaffo",
+    "university": "Bar-Ilan University",
+    "department": "Algebra",
+    "subjectArea": "Mathematics",
+    "date": "2026-12-02",
+    "time": "10:30",
+    "location": "Building 504, Room 5, Bar-Ilan University",
+    "abstract": "We define the notion of a central product of Cayley-Dickson loops and study its properties via its automorphism group and commutativity and associativity degrees.This talk is based on joint work with Ilan Levin.",
+    "type": "Seminar",
+    "sourceUrl": "https://math.biu.ac.il/en/node/4056"
+  },
+  {
+    "id": "biu-math-4058",
+    "title": "Kerr Black Hole Uniqueness",
+    "speaker": "Gilbert Weinstein",
+    "affiliation": "Ariel",
+    "university": "Bar-Ilan University",
+    "department": "Applied Math Seminar",
+    "subjectArea": "Mathematics",
+    "date": "2026-12-02",
+    "time": "12:15",
+    "location": "Building 404, Room 68, Bar-Ilan University",
+    "abstract": "The no-hair theorem states that the only asymptotically flat stationary solutions of the Einstein vacuum equations are members of the Kerr family, parametrized by mass and angular momentum. Hawking’s rigidity theorem shows that under the hypothesis of analyticity, any such solution is axially symmetric. For axially symmetric solutions with a single connected event horizon, Robinson (1975) proved that the solution must be Kerr. However, the case of multiple black holes has remained largely open. We settle this longstanding problem and show that stationary, axially symmetric multiple black holes cannot be in equilibrium by studying the associated harmonic maps with prescribed singularities. I will also discuss our corresponding result on black hole uniqueness in the electrovacuum setting This is joint work with Qing Han, Marcus Khuri, and Jingang Xiong.",
+    "type": "Seminar",
+    "sourceUrl": "https://math.biu.ac.il/en/node/4058"
   },
   {
     "id": "huji-2026-12-03-colloquium-nachi-avraham-ree",

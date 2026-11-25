@@ -200,6 +200,28 @@ name, used as the department.
 
 ---
 
+## Bar-Ilan University — Mathematics
+
+**URL:** `https://math.biu.ac.il/en/calendar/YYYYMM` (current month and the next two), then `https://math.biu.ac.il/en/node/<id>` per talk
+
+**Method:** Direct HTML fetch (Drupal)
+
+The department publishes talks only about a week ahead, so expect a handful at a time. Its iCal feed
+(`/ical/biu-math-seminars`) returns a server error, and its RSS feed (`/en/calendar-feed`) holds only the
+10 most recently added talks, so neither is used.
+
+- **Finding talks:** in the month view each talk is a `<div class="calendar.<node-id>.field_when…">` with a
+  link and a `DD/MM/YYYY - HH:MM` time; talks dated before today are skipped.
+- **Talk page fields** (`field__item--field-<name>`): `seminar-reference` (series → department),
+  `seminar-lecture-speaker` (`Name (Institution)` or `Name, Institution`), `seminar-lecture-place`
+  (`zoom` → location "Zoom"), `seminar-lecture-abstract`. Date, time and title come from the page's
+  add-to-calendar block (`atc_date_start`, `atc_title`).
+- **Skipped series:** The Jewish Calendar, and the Hebrew enrichment lectures and math circles (outreach).
+- **Type:** Colloquium if the series name contains "colloquium"
+- **ID:** `biu-math-<node-id>`
+
+---
+
 ## Adding a new source
 
 **If the site publishes an iCalendar (`.ics`) feed** (e.g. BGU Mathematics seminars), use the shared `scrapeIcsFeed()` function — no new scraper function needed. See `docs/bgu-ics-seminars.md` for the full pattern.
@@ -215,12 +237,10 @@ name, used as the department.
 ## Candidate sources (not yet added)
 
 Surveyed 2026-11-25. Agreed order: fix Weizmann (done), then TAU Math, Technion Math and the extra BGU
-seminars (done), then the rest.
+seminars (done), then the rest. Bar-Ilan Mathematics added 2026-11-25.
 
 - **TAU Exact Sciences** (physics, chemistry, geophysics) — `https://en-exact-sciences.tau.ac.il/events?page=N`,
   server-rendered, 6 per page; many entries give only the series name.
-- **Bar-Ilan Mathematics** — `https://math.biu.ac.il/en/calendar` (server-rendered month view). Its ICS feed
-  `/ical/biu-math-seminars` returned a server error.
 - **HUJI CS** — `https://www.cs.huji.ac.il/events`, rendered in the browser; few talks.
 - **Weizmann Math & CS faculty** — `https://www.weizmann.ac.il/math/events`, server-rendered; adds seminars
   missing from the central Weizmann feed.

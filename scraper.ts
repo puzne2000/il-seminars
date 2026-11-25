@@ -1,6 +1,6 @@
 // Standalone scraper — replaces the Supabase edge function.
 // Run: deno run --allow-net --allow-read --allow-write --allow-env scraper.ts [source-key]
-// Optional source keys: huji-math, huji-physics, technion-cs, technion-math, weizmann, tau-math, bgu-pet, bgu-colloquium, bgu-agnt, bgu-operator-algebras, bgu-results-of-others
+// Optional source keys: huji-math, huji-physics, technion-cs, technion-math, weizmann, tau-math, biu-math, bgu-pet, bgu-colloquium, bgu-agnt, bgu-operator-algebras, bgu-results-of-others
 // FIRECRAWL_API_KEY env var is only needed if scrapeWithFirecrawl() is used (no current source calls it).
 
 interface ScrapedSeminar {
@@ -866,6 +866,99 @@ async function scrapeGoogleCalendarSeminars(
   return [...byTalk.values()];
 }
 
+// ── Bar-Ilan Mathematics ────────────────────────────────────────────────────
+// Drupal site. The month calendar (https://math.biu.ac.il/en/calendar/YYYYMM) lists each talk as
+// <div class="calendar.<node-id>.field_when..."> with a link and a "DD/MM/YYYY - HH:MM" time; each
+// talk's own page (/en/node/<id>) has structured fields: seminar, speaker, date, place, abstract.
+// The department publishes talks only about a week ahead. (Its iCal feed returns a server error, and
+// its RSS feed holds only the 10 most recently added talks.)
+
+const BIU_MATH_BASE = "https://math.biu.ac.il";
+
+// Outreach and non-research series.
+const BIU_MATH_SKIP = /jewish calendar|הרצאות העשרה|מעגלים מתמטי/i;
+
+function biuField(html: string, name: string): string {
+  const m = html.match(new RegExp(`field__item--field-${name}">([\\s\\S]*?)</div>\\s*</div>`));
+  return m ? m[1] : "";
+}
+
+async function scrapeBarIlanMath(calendarUrl: string): Promise<ScrapedSeminar[]> {
+  const headers = { "User-Agent": "Mozilla/5.0 (compatible; seminar-scraper/1.0)" };
+  const today = new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const months = [0, 1, 2].map((i) => {
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + i, 1));
+    return d.toISOString().slice(0, 7).replace("-", "");
+  });
+
+  // 1. Collect upcoming talk node IDs from the month views.
+  const nodeIds = new Set<string>();
+  for (const month of months) {
+    const url = `${calendarUrl}/${month}`;
+    console.log(`Fetching Bar-Ilan calendar: ${url}`);
+    const res = await fetch(url, { headers });
+    if (!res.ok) throw new Error(`Bar-Ilan calendar ${month}: HTTP ${res.status}`);
+    const html = await res.text();
+    for (const m of html.matchAll(/calendar\.(\d+)\.field_when[\s\S]*?(\d{2})\/(\d{2})\/(\d{4})/g)) {
+      const [, nid, dd, mm, yyyy] = m;
+      if (`${yyyy}-${mm}-${dd}` >= today) nodeIds.add(nid);
+    }
+  }
+
+  // 2. Read each talk's page.
+  const seminars: ScrapedSeminar[] = [];
+  for (const nid of nodeIds) {
+    const pageUrl = `${BIU_MATH_BASE}/en/node/${nid}`;
+    console.log(`  Fetching Bar-Ilan talk: ${pageUrl}`);
+    const res = await fetch(pageUrl, { headers });
+    if (!res.ok) { console.error(`  Bar-Ilan talk ${nid}: HTTP ${res.status}`); continue; }
+    const html = await res.text();
+
+    const start = html.match(/atc_date_start">(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2})/);
+    if (!start) continue; // not a seminar talk page
+    const [, date, time] = start;
+
+    const series = htmlToText(biuField(html, "seminar-reference"));
+    if (BIU_MATH_SKIP.test(series)) continue;
+
+    const title = htmlToText(html.match(/atc_title">([\s\S]*?)<\/var>/)?.[1] ?? "") ||
+      htmlToText(html.match(/<title>([\s\S]*?)\s*\|/)?.[1] ?? "") || "TBA";
+
+    // Speaker is "Name (Institution)" or "Name, Institution"
+    const speakerRaw = htmlToText(biuField(html, "seminar-lecture-speaker"));
+    let { name: speaker, affiliation } = splitNameAffiliation(speakerRaw);
+    if (!affiliation && speaker.includes(",")) {
+      const i = speaker.indexOf(",");
+      affiliation = speaker.slice(i + 1).trim();
+      speaker = speaker.slice(0, i).trim();
+    }
+
+    const place = htmlToText(biuField(html, "seminar-lecture-place"));
+    const location = !place ? "Department of Mathematics, Bar-Ilan University"
+      : /^zoom$/i.test(place) ? "Zoom"
+      : /bar[- ]ilan/i.test(place) ? place : `${place}, Bar-Ilan University`;
+
+    seminars.push({
+      external_id: `biu-math-${nid}`,
+      title,
+      speaker: speaker || "TBA",
+      affiliation,
+      university: "Bar-Ilan University",
+      department: series || "Department of Mathematics",
+      subject_area: "Mathematics",
+      date,
+      time,
+      location,
+      abstract: htmlToText(biuField(html, "seminar-lecture-abstract")),
+      type: /colloquium/i.test(series) ? "Colloquium" : "Seminar",
+      source_url: pageUrl,
+      zoom_link: extractZoomLink(html),
+    });
+  }
+  return seminars;
+}
+
 // ── Sources ──────────────────────────────────────────────────────────────────
 
 const ALL_SOURCES: Record<string, { url: string; scraper: (url: string) => Promise<ScrapedSeminar[]> }> = {
@@ -893,6 +986,10 @@ const ALL_SOURCES: Record<string, { url: string; scraper: (url: string) => Promi
   "technion-math": {
     url: "https://math.technion.ac.il/events.ics",
     scraper: scrapeTechnionMath,
+  },
+  "biu-math": {
+    url: "https://math.biu.ac.il/en/calendar",
+    scraper: scrapeBarIlanMath,
   },
   "tau-math": {
     url: "https://sites.google.com/view/tau-math-seminars/",
