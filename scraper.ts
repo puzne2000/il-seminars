@@ -1,6 +1,6 @@
 // Standalone scraper — replaces the Supabase edge function.
 // Run: deno run --allow-net --allow-read --allow-write --allow-env scraper.ts [source-key]
-// Optional source keys: huji-math, huji-physics, technion-cs, technion-math, weizmann, tau-math, biu-math, bgu-pet, bgu-colloquium, bgu-agnt, bgu-operator-algebras, bgu-results-of-others
+// Optional source keys: huji-math, huji-physics, technion-cs, technion-math, technion-physics, weizmann, tau-math, biu-math, bgu-pet, bgu-colloquium, bgu-agnt, bgu-operator-algebras, bgu-results-of-others
 // FIRECRAWL_API_KEY env var is only needed if scrapeWithFirecrawl() is used (no current source calls it).
 
 interface ScrapedSeminar {
@@ -959,6 +959,96 @@ async function scrapeBarIlanMath(calendarUrl: string): Promise<ScrapedSeminar[]>
   return seminars;
 }
 
+// ── Technion Physics ────────────────────────────────────────────────────────
+// Joomla (SimpleCalendar). https://phys.technion.ac.il/en/events/future-events lists every future
+// talk, grouped under day headings ("Sunday , Nov 22, 2026"), each with Type, Title (linking to
+// /events/future-events/event/<id>), Speaker ("Name, Affiliation") and Venue ("Room, HH:MM - HH:MM").
+// Each talk's page has a table with separate Speaker, Affiliation, Time, Location and Abstract rows.
+
+const MONTH_ABBR: Record<string, string> = {
+  jan: "01", feb: "02", mar: "03", apr: "04", may: "05", jun: "06",
+  jul: "07", aug: "08", sep: "09", oct: "10", nov: "11", dec: "12",
+};
+
+function technionPhysicsRow(html: string, label: string): string {
+  const m = html.match(new RegExp(`<td>${label}:?</td><td[^>]*>([\\s\\S]*?)</td>`, "i"));
+  return m ? htmlToText(m[1]) : "";
+}
+
+async function scrapeTechnionPhysics(listUrl: string): Promise<ScrapedSeminar[]> {
+  const headers = { "User-Agent": "Mozilla/5.0 (compatible; seminar-scraper/1.0)" };
+  const today = new Date().toISOString().slice(0, 10);
+
+  console.log(`Fetching Technion Physics: ${listUrl}`);
+  const res = await fetch(listUrl, { headers });
+  if (!res.ok) throw new Error(`Technion Physics: HTTP ${res.status}`);
+  const html = await res.text();
+
+  const seminars: ScrapedSeminar[] = [];
+  // Each chunk starts with a day heading and holds that day's talks.
+  for (const day of html.split(/<div class="weeks-day day-koteret">/).slice(1)) {
+    const dm = day.match(/^\s*\w+\s*,\s*(\w{3})\w*\s+(\d{1,2}),\s*(\d{4})/);
+    const month = dm && MONTH_ABBR[dm[1].toLowerCase()];
+    if (!dm || !month) continue;
+    const date = `${dm[3]}-${month}-${dm[2].padStart(2, "0")}`;
+    if (date < today) continue;
+
+    for (const block of day.split(/class="offset4 span8 evnetblockcategory"/).slice(1)) {
+      const series = htmlToText(block.match(/week-type"[^>]*>([\s\S]*?)<\/div>/)?.[1] ?? "");
+      const link = block.match(/week-title">\s*<a\s+href="[^"]*\/event\/(\d+)"[^>]*>([\s\S]*?)<\/a>/);
+      if (!link) continue;
+      const [, eventId, rawTitle] = link;
+      const listSpeaker = htmlToText(block.match(/week-speaker"[^>]*>([\s\S]*?)<\/div>/)?.[1] ?? "");
+      const venue = htmlToText(block.match(/week-location"[^>]*>([\s\S]*?)<\/div>/)?.[1] ?? "");
+
+      // Listing fallbacks: "Name, Affiliation" and "Room, HH:MM - HH:MM"
+      const comma = listSpeaker.indexOf(",");
+      let speaker = comma === -1 ? listSpeaker : listSpeaker.slice(0, comma).trim();
+      let affiliation = comma === -1 ? "" : listSpeaker.slice(comma + 1).trim();
+      let time = venue.match(/(\d{1,2}:\d{2})\s*-\s*\d{1,2}:\d{2}\s*$/)?.[1] ?? "TBA";
+      let room = venue.replace(/,?\s*\d{1,2}:\d{2}\s*-\s*\d{1,2}:\d{2}\s*$/, "").trim();
+      let abstract = "";
+      let zoom: string | undefined;
+
+      const pageUrl = `https://phys.technion.ac.il/en/events/future-events/event/${eventId}`;
+      try {
+        console.log(`  Fetching Technion Physics event: ${pageUrl}`);
+        const page = await (await fetch(pageUrl, { headers })).text();
+        speaker = technionPhysicsRow(page, "Speaker") || speaker;
+        affiliation = technionPhysicsRow(page, "Affiliation") || affiliation;
+        time = technionPhysicsRow(page, "Time").match(/^(\d{1,2}:\d{2})/)?.[1] ?? time;
+        room = technionPhysicsRow(page, "Location") || room;
+        abstract = htmlToText(page.match(/class='event-description'>([\s\S]*?)<\/td>/)?.[1] ?? "");
+        zoom = extractZoomLink(page);
+      } catch (e) {
+        console.error(`  Technion Physics event ${eventId}: ${e}`);
+      }
+
+      const title = htmlToText(rawTitle).replace(/^["“”]+|["“”]+$/g, "").trim();
+      affiliation = affiliation.replace(/^[,\s]+/, "");
+      if (/^tb[ad]\.?$/i.test(abstract)) abstract = "";
+      if (/^tb[ad]\.?$/i.test(room)) room = "";
+      seminars.push({
+        external_id: `technion-physics-${eventId}`,
+        title: isTbaTitle(title) ? "TBA" : title,
+        speaker: speaker || "TBA",
+        affiliation,
+        university: "Technion",
+        department: series || "Physics Department",
+        subject_area: "Physics",
+        date,
+        time: time.padStart(5, "0"),
+        location: !room ? "Physics Department, Technion" : /technion/i.test(room) ? room : `${room}, Technion`,
+        abstract,
+        type: /colloquium/i.test(series) ? "Colloquium" : "Seminar",
+        source_url: pageUrl,
+        zoom_link: zoom,
+      });
+    }
+  }
+  return seminars;
+}
+
 // ── Sources ──────────────────────────────────────────────────────────────────
 
 const ALL_SOURCES: Record<string, { url: string; scraper: (url: string) => Promise<ScrapedSeminar[]> }> = {
@@ -969,6 +1059,10 @@ const ALL_SOURCES: Record<string, { url: string; scraper: (url: string) => Promi
   "technion-cs": {
     url: "https://www.cs.technion.ac.il/events/",
     scraper: scrapeTechnionCS,
+  },
+  "technion-physics": {
+    url: "https://phys.technion.ac.il/en/events/future-events",
+    scraper: scrapeTechnionPhysics,
   },
   "weizmann": {
     url: "https://www.weizmann.ac.il/pages/news/events/ajax/events",

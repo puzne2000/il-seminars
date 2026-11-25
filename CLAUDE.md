@@ -51,7 +51,7 @@ deno run --allow-net --allow-read --allow-write --allow-env scraper.ts          
 deno run --allow-net --allow-read --allow-write --allow-env scraper.ts huji-math  # one source
 ```
 
-Valid source keys: `huji-math`, `huji-physics`, `technion-cs`, `technion-math`, `weizmann`, `tau-math`, `biu-math`, `bgu-pet`, `bgu-colloquium`, `bgu-agnt`, `bgu-operator-algebras`, `bgu-results-of-others`
+Valid source keys: `huji-math`, `huji-physics`, `technion-cs`, `technion-math`, `technion-physics`, `weizmann`, `tau-math`, `biu-math`, `bgu-pet`, `bgu-colloquium`, `bgu-agnt`, `bgu-operator-algebras`, `bgu-results-of-others`
 
 The scraper writes camelCase `Seminar` objects (matching `src/data/seminars.ts`) directly to `public/seminars.json`. On a full scrape, future seminars not found in the latest scrape are carried over with `possiblyCancelled: true`. On a partial (single-source) scrape, only entries from that source are updated; other entries are preserved unchanged.
 

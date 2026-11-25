@@ -6,7 +6,7 @@
 #   ./update-seminars.sh [source-key]
 #
 #   source-key (optional): scrape only one source instead of all.
-#   Valid keys: huji-math, huji-physics, technion-cs, technion-math, weizmann, tau-math, biu-math,
+#   Valid keys: huji-math, huji-physics, technion-cs, technion-math, technion-physics, weizmann, tau-math, biu-math,
 #               bgu-pet, bgu-colloquium, bgu-agnt, bgu-operator-algebras, bgu-results-of-others
 #
 # WHAT IT DOES

@@ -200,6 +200,28 @@ name, used as the department.
 
 ---
 
+## Technion — Physics
+
+**URL:** `https://phys.technion.ac.il/en/events/future-events`, then `https://phys.technion.ac.il/en/events/future-events/event/<id>` per talk
+
+**Method:** Direct HTML fetch (Joomla, SimpleCalendar)
+
+The listing shows every future talk (about two months ahead), grouped under day headings
+(`<div class="weeks-day day-koteret">Sunday , Nov 22, 2026`). Each talk block has `week-type` (series →
+department), `week-title` (link with the event ID), `week-speaker` (`Name, Affiliation`) and
+`week-location` (`Room, HH:MM - HH:MM`).
+
+Each talk's page has a table with separate `Speaker:`, `Affiliation:`, `Time:`, `Location:` rows and the
+abstract in `td.event-description`; these override the listing values (which remain as a fallback if the
+page fails). Surrounding quotes in titles, a leading comma in affiliations, and "TBA"/"TBD" abstracts or
+rooms are cleaned up.
+
+- **Type:** Colloquium if the series name contains "colloquium"
+- **ID:** `technion-physics-<event-id>`
+- **Note:** the site sometimes lists the same talk on two days; both are kept, as the source shows them.
+
+---
+
 ## Bar-Ilan University — Mathematics
 
 **URL:** `https://math.biu.ac.il/en/calendar/YYYYMM` (current month and the next two), then `https://math.biu.ac.il/en/node/<id>` per talk
@@ -237,12 +259,15 @@ The department publishes talks only about a week ahead, so expect a handful at a
 ## Candidate sources (not yet added)
 
 Surveyed 2026-11-25. Agreed order: fix Weizmann (done), then TAU Math, Technion Math and the extra BGU
-seminars (done), then the rest. Bar-Ilan Mathematics added 2026-11-25.
+seminars (done), then the rest. Bar-Ilan Mathematics and Technion Physics added 2026-11-25.
 
 - **TAU Exact Sciences** (physics, chemistry, geophysics) — `https://en-exact-sciences.tau.ac.il/events?page=N`,
   server-rendered, 6 per page; many entries give only the series name.
 - **HUJI CS** — `https://www.cs.huji.ac.il/events`, rendered in the browser; few talks.
 - **Weizmann Math & CS faculty** — `https://www.weizmann.ac.il/math/events`, server-rendered; adds seminars
   missing from the central Weizmann feed.
+- **HUJI Center for the Study of Rationality** (game theory, EconCS, AI & Society) —
+  `https://ratio.huji.ac.il/calendar/upcoming/events/seminars`, same OpenScholar platform as HUJI Mathematics;
+  only 2 upcoming talks in Nov 2026. Would be the first source for the "Economics" subject.
 - **Haifa Faculty of Natural Sciences** — The Events Calendar REST API:
   `https://sciences.haifa.ac.il/wp-json/tribe/events/v1/events?start_date=YYYY-MM-DD`; very few talks.

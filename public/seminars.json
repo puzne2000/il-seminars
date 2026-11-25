@@ -138,6 +138,36 @@
     "sourceUrl": "https://math.biu.ac.il/en/node/4055"
   },
   {
+    "id": "technion-physics-3334",
+    "title": "Probing Changing-Look Active Galactic Nuclei with Long-Term Multiwavelength Monitoring and Reverberation Mapping",
+    "speaker": "Victor Oknyansky",
+    "affiliation": "Haifa U",
+    "university": "Technion",
+    "department": "Astrophysics Seminar",
+    "subjectArea": "Physics",
+    "date": "2026-11-25",
+    "time": "11:30",
+    "location": "Lidow 620, Technion",
+    "abstract": "Changing-look active galactic nuclei (CL AGNs) undergo dramatic transitions in their spectral type and line properties on timescales ranging from days to years. In 2016, we initiated a long-term multiwavelength (IR–X-ray) monitoring program targeting a sample of CL AGNs using both ground- and space-based facilities, including ShAO, SAI, MASTER, Swift, WIRO, SAAO, and WISE. The primary goal of this program is to investigate the recurrence of changing-look events and to constrain the physical mechanisms driving their rapid, large-amplitude variability. Our results include reverberation mapping based on multiwavelength continuum variations, as well as on the variability of broad permitted and forbidden coronal lines. We report the first detections of coronal-line variability in NGC 4151, NGC 1566, and NGC 3516. In addition, we present the discovery of new changing-look events in several AGNs.",
+    "type": "Seminar",
+    "sourceUrl": "https://phys.technion.ac.il/en/events/future-events/event/3334"
+  },
+  {
+    "id": "technion-physics-3343",
+    "title": "Tailoring Spin in Quantum Materials across Time and Space",
+    "speaker": "Oliver L.A. Monti",
+    "affiliation": "Department of Chemistry and Biochemistry, Department of Physics, Applied Mathematics Program The University of Arizona, Tucson, USA",
+    "university": "Technion",
+    "department": "Quantum Center Seminar",
+    "subjectArea": "Physics",
+    "date": "2026-11-25",
+    "time": "14:30",
+    "location": "Solid State Auditorium(Entrance), Technion",
+    "abstract": "The design of conventional electronic devices of all kinds is dominated by a small set of materials whose properties are deeply understood and can be controlled with extraordinary precision. While the resulting electronics have arguably completely revolutionized society, there are now fundamental limitations in size, capability of integration into consumer-sized devices, and power efficiency. These limitations can only be overcome with completely new materials and device concepts, which in themselves require to go beyond charge current as information carrier. In this talk, I will introduce the notion of spin as a natural choice for low-power electronics. I will show how “small molecule” organic semiconductors can be used to tailor spintronic responses in quantum materials, on timescales of 10-15 s, length scales of ~10 Å and energy scales of molecular vibrations or less. Interfaces between such molecules and other materials – including quantum materials - permit conversion of charge to spin, selective spin injection or control of the spin degrees of freedom. The origin of these effects stems from the formation of a hybrid molecular interface, a chemical entity that extends beyond both the molecular material and its counterpart, enabling new ways of designing materials platforms for ultraefficient electronics.",
+    "type": "Seminar",
+    "sourceUrl": "https://phys.technion.ac.il/en/events/future-events/event/3343"
+  },
+  {
     "id": "huji-2026-11-26-colloquium-doron-puder-tau",
     "title": "Colloquium: Doron Puder (TAU)",
     "speaker": "Doron Puder",
@@ -364,6 +394,21 @@
     "sourceUrl": "https://math.biu.ac.il/en/node/4054"
   },
   {
+    "id": "technion-physics-3340",
+    "title": "Tailoring Spin in Quantum Materials across Time and Space",
+    "speaker": "Prof. Oliver Monti",
+    "affiliation": "",
+    "university": "Technion",
+    "department": "Quantum Center Seminar",
+    "subjectArea": "Physics",
+    "date": "2026-11-26",
+    "time": "14:30",
+    "location": "Solid State Auditorium(Entrance), Technion",
+    "abstract": "The design of conventional electronic devices of all kinds is dominated by a small set of materials whose properties are deeply understood and can be controlled with extraordinary precision. While the resulting electronics have arguably completely revolutionized society, there are now fundamental limitations in size, capability of integration into consumer-sized devices, and power efficiency. These limitations can only be overcome with completely new materials and device concepts, which in themselves require to go beyond charge current as information carrier. In this talk, I will introduce the notion of spin as a natural choice for low-power electronics. I will show how “small molecule” organic semiconductors can be used to tailor spintronic responses in quantum materials, on timescales of 10 -15 s, length scales of ~10 Å and energy scales of molecular vibrations or less. Interfaces between such molecules and other materials – including quantum materials - permit conversion of charge to spin, selective spin injection or control of the spin degrees of freedom. The origin of these effects stems from the formation of a hybrid molecular interface, a chemical entity that extends beyond both the molecular material and its counterpart, enabling new ways of designing materials platforms for ultraefficient electronics.",
+    "type": "Seminar",
+    "sourceUrl": "https://phys.technion.ac.il/en/events/future-events/event/3340"
+  },
+  {
     "id": "technion-cs-2026-11-29-x-basis-initialization-in-comp",
     "title": "X-Basis Initialization in Compressed QAOA: From Random Ensembles to Structured Selection",
     "speaker": "Abed Semre",
@@ -485,6 +530,21 @@
     "sourceUrl": "https://math.biu.ac.il/en/node/4057"
   },
   {
+    "id": "technion-physics-3357",
+    "title": "Recurrence times with mid circuit measurements",
+    "speaker": "Prof. Eli Barkai",
+    "affiliation": "BIU",
+    "university": "Technion",
+    "department": "Statistical & Bio Seminar",
+    "subjectArea": "Physics",
+    "date": "2026-11-29",
+    "time": "11:30",
+    "location": "Lidow Nathan Rosen (300), Technion",
+    "abstract": "For discrete Markovian dynamics, the mean recurrence time to a given state, in an ergodic stochastic process, is inversely proportional to its steady-state population, as stated by Kac's lemma. Here, we extend this concept to monitored quantum dynamics. As shown by Grünbaum et al., quantum recurrence exhibits a topological effect: the mean recurrence time is integer-quantized, with pronounced resonance dips at specific sampling times where dark states emerge in Hilbert space. We investigate a time–energy uncertainty principle governing the broadening of these resonances. Using IBM quantum platforms, we demonstrate how this behavior evolves toward a classical Kac-like limit as the number of repeated measurements increases. We show that the effective steady states depend on the sampling time, highlighting the essential role of measurement back-action. In certain regimes, the sharp resonance dips are transformed into pronounced peaks, reflecting the extreme sensitivity of the system to noise in the vicinity of dark-state formation.",
+    "type": "Seminar",
+    "sourceUrl": "https://phys.technion.ac.il/en/events/future-events/event/3357"
+  },
+  {
     "id": "huji-2026-11-30-ntag-sergey-rybakov-ben-gur",
     "title": "NT&AG: Sergey Rybakov (Ben Gurion)",
     "speaker": "Sergey Rybakov",
@@ -558,6 +618,21 @@
     "abstract": "From their origin sofic groups have had a strong connection to topological dynamics in that it was shown that sofic groups are surjunctive - a property that is dynamical in nature. . Later on Lewis Bowen developed an entropy theory for sofic groups. This led to further extensions of dynamical invariants such as mean dimension to sofic groups. I will survey some of this history and now that it has been shown that not all groups are sofic. I will also describe some dynamical results that are valid for all countable groups.",
     "type": "Colloquium",
     "sourceUrl": "https://calendar.google.com/calendar/embed?src=mathtau120%40gmail.com"
+  },
+  {
+    "id": "technion-physics-3346",
+    "title": "From Quantum Sensors to Demon Materials: New Directions for Light Dark Matter",
+    "speaker": "Yonit Hochberg",
+    "affiliation": "Hebrew University",
+    "university": "Technion",
+    "department": "Colloquium",
+    "subjectArea": "Physics",
+    "date": "2026-11-30",
+    "time": "14:30",
+    "location": "Lidow Rosen Auditorium (323), Technion",
+    "abstract": "Dark matter is one of the biggest mysteries of modern day physics, yet its identity remains unknown. In this talk, I will focus on light dark matter, and present new proposals for its direct detection in the laboratory that hold much promise. These include the use of superconducting nanowires, two-dimensional targets such as graphene, and unconventional materials with low-energy plasmons. Considering dark matter interactions with these targets, I will demonstrate the potential of the light dark matter direct detection program in upcoming years.",
+    "type": "Colloquium",
+    "sourceUrl": "https://phys.technion.ac.il/en/events/future-events/event/3346"
   },
   {
     "id": "huji-2026-12-01-dynamics-seminar--yeor-hafout",
@@ -726,6 +801,21 @@
     "type": "Seminar",
     "sourceUrl": "https://www.cs.technion.ac.il/events/",
     "possiblyCancelled": true
+  },
+  {
+    "id": "technion-physics-3317",
+    "title": "Quantum Geometry as a Probe of Hidden Order in Quantum Materials",
+    "speaker": "Yoram Dagan",
+    "affiliation": "TAU",
+    "university": "Technion",
+    "department": "Condensed Matter Seminar",
+    "subjectArea": "Physics",
+    "date": "2026-12-01",
+    "time": "12:30",
+    "location": "Lidow Nathan Rosen (300), Technion",
+    "abstract": "Electrons in crystals carry a quantum geometry, encoded in the Berry curvature; that shapes how they respond to applied fields. I will argue that this geometry can be used to probe order in materials, including symmetry breaking that conventional measurements are missing. Second-order responses, such as the nonlinear Hall effect, detect broken inversion symmetry that linear transport cannot see. At KTaO₃ interfaces, where spin-orbit coupling is strong, we find large, reproducible fluctuations in this nonlinear response as the magnetic field is varied. They persist in devices with hundreds of micrometers across and on every surface-orientation studied, even where the linear conductivity looks perfectly symmetric. We attribute them to local polar distortions pinned to interfacial defects. The signal fades above about 10 K and its pattern is erased after warming to 40 K. Nonlinear transport thus becomes a new window on hidden structural order in quantum materials. https://arxiv.org/pdf/2606.20949",
+    "type": "Seminar",
+    "sourceUrl": "https://phys.technion.ac.il/en/events/future-events/event/3317"
   },
   {
     "id": "huji-2026-12-02-logic-seminar---katie-ellman-a",
@@ -1170,6 +1260,21 @@
     "sourceUrl": "https://calendar.google.com/calendar/embed?src=tau.math.seminars%40gmail.com"
   },
   {
+    "id": "technion-physics-3335",
+    "title": "TBA",
+    "speaker": "Eldana Grichener",
+    "affiliation": "",
+    "university": "Technion",
+    "department": "Astrophysics Seminar",
+    "subjectArea": "Physics",
+    "date": "2026-12-09",
+    "time": "11:30",
+    "location": "Lidow 620, Technion",
+    "abstract": "",
+    "type": "Seminar",
+    "sourceUrl": "https://phys.technion.ac.il/en/events/future-events/event/3335"
+  },
+  {
     "id": "huji-2026-12-10-colloquium-rami-aizenbud-wei",
     "title": "Colloquium: Rami Aizenbud (Weizmann)",
     "speaker": "Rami Aizenbud",
@@ -1291,6 +1396,36 @@
     "sourceUrl": "https://calendar.google.com/calendar/embed?src=pbn142281ikep0u7d52u2np9og%40group.calendar.google.com"
   },
   {
+    "id": "technion-physics-3327",
+    "title": "TBA",
+    "speaker": "Andrey Chubukov",
+    "affiliation": "University of Minnesota",
+    "university": "Technion",
+    "department": "Condensed Matter Seminar",
+    "subjectArea": "Physics",
+    "date": "2026-12-13",
+    "time": "11:30",
+    "location": "Lidow Nathan Rosen (300), Technion",
+    "abstract": "",
+    "type": "Seminar",
+    "sourceUrl": "https://phys.technion.ac.il/en/events/future-events/event/3327"
+  },
+  {
+    "id": "technion-physics-3354",
+    "title": "Irreversibility patterns and correlations",
+    "speaker": "Ido Patish",
+    "affiliation": "Technion",
+    "university": "Technion",
+    "department": "Statistical & Bio Seminar",
+    "subjectArea": "Physics",
+    "date": "2026-12-13",
+    "time": "11:30",
+    "location": "Physics Department, Technion",
+    "abstract": "Time-reversal symmetry breaking is the hallmark of non-equilibrium statistical physics. Yet, in translationally invariant systems, it is overwhelmingly treated only as a global quantity. We propose to use the local entropy production rate as a spatio-temporal field to describe extended homogeneous non-equilibrium systems. We uncover that this field generically displays spatial correlations, with a typical length that seems to grow close to some non-equilibrium phase transitions like motility-induced phase separation in active matter and absorbing-state phase transitions in Manna-class systems. We also show that the correlation length associated to the local entropy production rate follows heretofore unknown scaling laws with respect to the integration time used for trajectories and control parameters. Our work paves the way to the use of the local entropy production as a powerful observable to identify the scale and source of irreversibility in non-equilibrium systems.",
+    "type": "Seminar",
+    "sourceUrl": "https://phys.technion.ac.il/en/events/future-events/event/3354"
+  },
+  {
     "id": "huji-2026-12-14-combinatorics-shay-sadovsky-",
     "title": "Combinatorics: Shay Sadovsky (NYU)",
     "speaker": "Shay Sadovsky",
@@ -1349,6 +1484,21 @@
     "abstract": "Light is the source of life on Earth, and is used in numerous ways in the plant and animal kingdoms for a variety of applications, including photosynthesis, vision, camouflage, communication, thermal management and more. As such, evolution has led to the creation of intricate optical systems with highly controlled and regulated properties. The talk will present an overview of some of these unique optical systems, focusing on the ubiquitous guanine-based optical reflectors and on more recently discovered 3D structural color systems. In particular, correlated optical and structural characterization will be shown to unearth new information about the function of some of the more poorly understood biological light manipulation systems and to reveal clues about their evolution. Finally, the potential for previously unexplored bioinspired optics based on these findings will be discussed.",
     "type": "Seminar",
     "sourceUrl": "https://phys.huji.ac.il/event/physics-colloquium-optics-life-materials-and-physics-behind-biogenic-structural-colors"
+  },
+  {
+    "id": "technion-physics-3347",
+    "title": "Special Colloquium in memory of Claude Cohen-Tannoudji",
+    "speaker": "Eric Akkermans and Moti Segev",
+    "affiliation": "",
+    "university": "Technion",
+    "department": "Colloquium",
+    "subjectArea": "Physics",
+    "date": "2026-12-14",
+    "time": "14:30",
+    "location": "Lidow Rosen Auditorium (323), Technion",
+    "abstract": "",
+    "type": "Colloquium",
+    "sourceUrl": "https://phys.technion.ac.il/en/events/future-events/event/3347"
   },
   {
     "id": "huji-2026-12-15-crossover-seminar-dynamics--",
@@ -1488,6 +1638,21 @@
     "sourceUrl": "https://calendar.google.com/calendar/embed?src=d0qum5kdjio03uos9bgtohj7ag%40group.calendar.google.com"
   },
   {
+    "id": "technion-physics-3349",
+    "title": "PhD Seminar - TBA",
+    "speaker": "Vered Cohen",
+    "affiliation": "",
+    "university": "Technion",
+    "department": "Condensed Matter Seminar",
+    "subjectArea": "Physics",
+    "date": "2026-12-15",
+    "time": "12:30",
+    "location": "Lidow Nathan Rosen (300), Technion",
+    "abstract": "",
+    "type": "Seminar",
+    "sourceUrl": "https://phys.technion.ac.il/en/events/future-events/event/3349"
+  },
+  {
     "id": "huji-2026-12-16-logic-seminar---will-johnson",
     "title": "Logic Seminar - Will Johnson",
     "speaker": "Will Johnson",
@@ -1563,6 +1728,21 @@
     "type": "Seminar",
     "sourceUrl": "https://calendar.google.com/calendar/embed?src=i93ipfiak8fafjrd996p03rgig%40group.calendar.google.com",
     "zoomLink": "https://tau-ac-il.zoom.us/j/84762016825?pwd=HgWKf3OGVuO0dCynhLrYIleaIFmARF.1"
+  },
+  {
+    "id": "technion-physics-3356",
+    "title": "Thomson-broadened emission lines and the geometry of Little Red Dots",
+    "speaker": "Elisha Modelevski",
+    "affiliation": "",
+    "university": "Technion",
+    "department": "Astrophysics Seminar",
+    "subjectArea": "Physics",
+    "date": "2026-12-16",
+    "time": "11:30",
+    "location": "Lidow 620, Technion",
+    "abstract": "",
+    "type": "Seminar",
+    "sourceUrl": "https://phys.technion.ac.il/en/events/future-events/event/3356"
   },
   {
     "id": "weizmann-a2ea49ab-f522-4a00-a703-9e79237da7ea",
@@ -1791,6 +1971,21 @@
     "abstract": "",
     "type": "Colloquium",
     "sourceUrl": "https://calendar.google.com/calendar/embed?src=mathtau120%40gmail.com"
+  },
+  {
+    "id": "technion-physics-3348",
+    "title": "TBA",
+    "speaker": "Dmitri Basov",
+    "affiliation": "Columbia University",
+    "university": "Technion",
+    "department": "Colloquium",
+    "subjectArea": "Physics",
+    "date": "2026-12-21",
+    "time": "14:30",
+    "location": "Lidow Rosen Auditorium (323), Technion",
+    "abstract": "",
+    "type": "Colloquium",
+    "sourceUrl": "https://phys.technion.ac.il/en/events/future-events/event/3348"
   },
   {
     "id": "huji-2026-12-22-dynamics-seminar---svetlana-ji",
@@ -2067,6 +2262,21 @@
     "sourceUrl": "https://calendar.google.com/calendar/embed?src=pbn142281ikep0u7d52u2np9og%40group.calendar.google.com"
   },
   {
+    "id": "technion-physics-3352",
+    "title": "Contraction waves in biological tissues: Insights from pulsating active matter",
+    "speaker": "Etienne Fodor",
+    "affiliation": "University of Luxembourg",
+    "university": "Technion",
+    "department": "Statistical & Bio Seminar",
+    "subjectArea": "Physics",
+    "date": "2026-12-27",
+    "time": "11:30",
+    "location": "Lidow Nathan Rosen (300), Technion",
+    "abstract": "When heartbeats become irregular due to tachycardia or fibrillation, spiral waves and motile defects emerge at the surface of cardiac tissues [1]. Capturing the emergence of such defects in confluent tissues without any cellular flow is a theoretical challenge which has recently been tackled by models of actively deforming particles [2-5]. In dense assemblies where particles are subject to individual pulsation of their sizes, the interplay between synchronization and repulsion can produce deformation waves resembling those observed in cardiac tissues. Combining particle-based and hydrodynamic approaches, we examine the statistics of defects in the collective deformation of particles. We rationalize the emergence of defect motility as stemming from the breakdown of time-reversal and spatial symmetries. Specifically, we provide analytical predictions for the deformation profile near the defect core to quantify the angular and translational velocities of defects. These results lead to identifying the dominant mechanism underlying the crossover between various deformation patterns in contractile tissues, with broader implications for understanding similar phenomena in other active systems. [1] A. Karma, Annu. Rev. Condens. Matter Phys., 4, 313-337 (2013) [2] Y. Zhang, É. Fodor, Phys. Rev. Lett., 131, 238302 (2023) [3] A. Manacorda, É. Fodor, Phys. Rev. E, 111, L053401 (2025) [4] W. Piñeros, É. Fodor, Phys. Rev. Lett., 134, 038301 (2025) [5] T. Banerjee, et al., arXiv:2407.19955 (2024); arXiv:2509.19024 (2025)",
+    "type": "Seminar",
+    "sourceUrl": "https://phys.technion.ac.il/en/events/future-events/event/3352"
+  },
+  {
     "id": "huji-2026-12-28-combinatorics-nir-lavee-huji",
     "title": "Combinatorics: Nir Lavee (HUJI)",
     "speaker": "Nir Lavee",
@@ -2221,6 +2431,21 @@
     "possiblyCancelled": true
   },
   {
+    "id": "technion-physics-3336",
+    "title": "TBA",
+    "speaker": "Vicky Kaspi",
+    "affiliation": "",
+    "university": "Technion",
+    "department": "Astrophysics Seminar",
+    "subjectArea": "Physics",
+    "date": "2026-12-30",
+    "time": "11:30",
+    "location": "Lidow 620, Technion",
+    "abstract": "",
+    "type": "Seminar",
+    "sourceUrl": "https://phys.technion.ac.il/en/events/future-events/event/3336"
+  },
+  {
     "id": "huji-2026-12-31-colloquium-amit-daniely-huji",
     "title": "Colloquium: Amit Daniely (HUJI)",
     "speaker": "Amit Daniely",
@@ -2326,6 +2551,21 @@
     "sourceUrl": "https://www.weizmann.ac.il/pages/news/events/event/01a1a552-60d3-70cd-ab92-aae0ed9c2185"
   },
   {
+    "id": "technion-physics-3322",
+    "title": "TBA",
+    "speaker": "David Weitz",
+    "affiliation": "Harvard",
+    "university": "Technion",
+    "department": "Colloquium",
+    "subjectArea": "Physics",
+    "date": "2027-01-04",
+    "time": "14:30",
+    "location": "Lidow Rosen Auditorium (323), Technion",
+    "abstract": "",
+    "type": "Colloquium",
+    "sourceUrl": "https://phys.technion.ac.il/en/events/future-events/event/3322"
+  },
+  {
     "id": "huji-2027-01-05-dynamics-lunch-seminar---tzur-",
     "title": "Dynamics Lunch Seminar - Tzur Lehavi (HUJI)",
     "speaker": "Tzur Lehavi",
@@ -2400,6 +2640,21 @@
     "abstract": "Advances in language modeling have been driven by scaling pretraining on ever more data. Yet, the training data is still largely curated on the model's behalf. A more general approach to pretraining would let the model learn to generate the data most useful for its own improvement. This would provide an effectively unbounded source of training data, limited by compute rather than human knowledge. We introduce Self-Play Pretraining with Zero Data, an initial proof-of-concept towards realizing this vision. Our procedure casts synthetic data generation as a search over the space of all computable structure, taking inspiration from Solomonoff induction. Starting from random initialization, two models learn in tandem: a generator proposes programs interpreted by a universal Turing machine, generating byte sequences, while a learner autoregressively predicts these byte sequences. The learner is trained with standard cross-entropy, while the generator is trained with reinforcement learning to produce sequences at the frontier of the learner's capabilities, yielding an adaptive curriculum. A universal Turing machine gives us a search space over all computable data-generating processes, imposing little domain-specific structure, and self-play searches over this space for useful training data. We test whether zero-shot performance on natural data improves predictably with self-play compute; this is a clean test of transfer since neither generator nor learner is trained on natural data. Across several natural datasets, zero-shot loss exhibits predictable scaling in compute. The models also exhibit in-context learning, and discover recognizable mathematical sequences during training.",
     "type": "Seminar",
     "sourceUrl": "https://calendar.google.com/calendar/embed?src=d0qum5kdjio03uos9bgtohj7ag%40group.calendar.google.com"
+  },
+  {
+    "id": "technion-physics-3321",
+    "title": "TBA",
+    "speaker": "Beena Kalisky",
+    "affiliation": "Bar-Ilan University",
+    "university": "Technion",
+    "department": "Condensed Matter Seminar",
+    "subjectArea": "Physics",
+    "date": "2027-01-05",
+    "time": "12:30",
+    "location": "Lidow Nathan Rosen (300), Technion",
+    "abstract": "",
+    "type": "Seminar",
+    "sourceUrl": "https://phys.technion.ac.il/en/events/future-events/event/3321"
   },
   {
     "id": "bgu-agnt-en-fall2027-seminars-agnt-meetings-2027-01-06",
@@ -2599,6 +2854,21 @@
     "sourceUrl": "https://mathematics.huji.ac.il/event/dynamics-lunch-seminar-amir-algom-university-haifa-oranim?ref_tid=3830"
   },
   {
+    "id": "technion-physics-3350",
+    "title": "TBA",
+    "speaker": "Ady Stern",
+    "affiliation": "Weizmann Institute of Science",
+    "university": "Technion",
+    "department": "Condensed Matter Seminar",
+    "subjectArea": "Physics",
+    "date": "2027-01-12",
+    "time": "12:30",
+    "location": "Lidow Nathan Rosen (300), Technion",
+    "abstract": "",
+    "type": "Seminar",
+    "sourceUrl": "https://phys.technion.ac.il/en/events/future-events/event/3350"
+  },
+  {
     "id": "bgu-agnt-en-fall2027-seminars-agnt-meetings-2027-01-13",
     "title": "TBA",
     "speaker": "Floris Vermeulen",
@@ -2675,6 +2945,21 @@
     "sourceUrl": "https://calendar.google.com/calendar/embed?src=pbn142281ikep0u7d52u2np9og%40group.calendar.google.com"
   },
   {
+    "id": "technion-physics-3323",
+    "title": "TBA",
+    "speaker": "Sidney Redner",
+    "affiliation": "Santa Fe Institute",
+    "university": "Technion",
+    "department": "Colloquium",
+    "subjectArea": "Physics",
+    "date": "2027-01-18",
+    "time": "14:30",
+    "location": "Lidow Rosen Auditorium (323), Technion",
+    "abstract": "",
+    "type": "Colloquium",
+    "sourceUrl": "https://phys.technion.ac.il/en/events/future-events/event/3323"
+  },
+  {
     "id": "weizmann-01a15e8d-f22f-7370-ac0a-05e04863e0c5",
     "title": "Rubinstein Lecture",
     "speaker": "Prof. Claudia Felser",
@@ -2688,6 +2973,21 @@
     "abstract": "",
     "type": "Colloquium",
     "sourceUrl": "https://www.weizmann.ac.il/pages/news/events/event/01a15e8d-f22f-7370-ac0a-05e04863e0c5"
+  },
+  {
+    "id": "technion-physics-3351",
+    "title": "TBA",
+    "speaker": "Muntaser Naamneh",
+    "affiliation": "Ben Gurion University",
+    "university": "Technion",
+    "department": "Condensed Matter Seminar",
+    "subjectArea": "Physics",
+    "date": "2027-01-19",
+    "time": "12:30",
+    "location": "Lidow Nathan Rosen (300), Technion",
+    "abstract": "",
+    "type": "Seminar",
+    "sourceUrl": "https://phys.technion.ac.il/en/events/future-events/event/3351"
   },
   {
     "id": "technion-cs-2027-01-20-research-day-at-the-faculty-of",
