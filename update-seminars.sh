@@ -6,7 +6,8 @@
 #   ./update-seminars.sh [source-key]
 #
 #   source-key (optional): scrape only one source instead of all.
-#   Valid keys: huji-math, technion-cs, weizmann, huji-physics, bgu-pet, bgu-colloquium
+#   Valid keys: huji-math, huji-physics, technion-cs, technion-math, weizmann, tau-math,
+#               bgu-pet, bgu-colloquium, bgu-agnt, bgu-operator-algebras, bgu-results-of-others
 #
 # WHAT IT DOES
 #   1. Runs the scraper (scraper.ts) to refresh public/seminars.json.

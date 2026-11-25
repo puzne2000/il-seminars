@@ -1,116 +1,118 @@
 # Deployment
 
-## Local Development Stack
+The site is a static React app. Seminar data lives in `public/seminars.json`, committed to the repo and
+served as a static file — there is no backend or database. (An earlier version used Supabase; see
+[Leftovers](#leftovers-from-the-supabase-setup).)
 
-Start everything with `./start.sh`, stop with `./stop.sh`.
+## Local development
 
-`start.sh` launches:
-- Docker Desktop (if not already running)
-- Local Supabase (`npx supabase start`) — PostgreSQL, Auth, Edge Functions runtime
-- Edge functions dev server (`npx supabase functions serve`)
-- Vite frontend (`npm run dev`)
-- A background loop that triggers a scrape every 24 hours
+Start with `./start.sh`, stop with `./stop.sh`. `start.sh` only launches the Vite dev server
+(`npm run dev`).
 
-URLs:
 - Frontend: `http://localhost:8080`
-- Supabase API: `http://127.0.0.1:54321`
-- Supabase Studio: `http://127.0.0.1:54323`
+- Log: `/tmp/il-seminars-frontend.log`
 
-Direct DB access:
-```bash
-docker exec supabase_db_wzbkmepgwihppoipfarb psql -U postgres
-```
-
-Logs: `/tmp/il-seminars-frontend.log`, `/tmp/il-seminars-functions.log`
-
-Credentials: `.env.local` (gitignored) holds local Supabase keys and takes precedence over `.env` in dev. **Never overwrite `.env` with local credentials** — it would break the production site.
+To refresh the local data without committing or deploying: `./run_scraper.sh [source-key]`.
 
 ---
 
-## Remote Frontend
+## Hosting: Cloudflare Pages
 
-Two separate deployments, both auto-deploy on every push to `main` on `puzne2000/il-seminars`:
+| | |
+|---|---|
+| Live URL | `https://il-seminars.pages.dev` |
+| Project | `il-seminars` (Cloudflare dashboard → Workers & Pages → il-seminars) |
+| Build | `npm run build` → `dist/` |
+| Config | none in the repo; settings live in the Cloudflare dashboard |
 
-| Deployment | URL | Config location |
-|---|---|---|
-| Lovable | (lovable.dev hosted URL) | lovable.dev project dashboard |
-| Cloudflare Pages | `https://il-seminars.pages.dev` | Cloudflare dashboard → Pages → il-seminars |
+### How the site actually gets deployed
 
-Cloudflare Pages build: `npm run build` → `dist/`. No config file in the repo — settings are managed entirely in the Cloudflare dashboard.
+**Pushing to `main` does not update the live site on its own.** The deploy that works is a direct upload
+with Wrangler from this machine:
 
-To update the frontend: push to `main`. Both deployments update automatically within a minute or two.
+```bash
+npm run build
+npx wrangler pages deploy dist --project-name il-seminars --branch main
+```
+
+`update-seminars.sh` does this automatically after scraping (see below). If Wrangler reports an
+authentication or OAuth error, run `npx wrangler login` and retry.
+
+Each push to `main` also triggers a Cloudflare git-integration build, but those builds fail: in the
+deployment list, every commit pushed between June and November 2026 has a deployment marked `Failure`.
+The successful deployments in that list are separate uploads. The build logs are in the Cloudflare
+dashboard (each deployment has a link). To see recent deployments and their status:
+
+```bash
+npx wrangler pages deployment list --project-name il-seminars
+```
+
+To check what is live, compare `https://il-seminars.pages.dev/seminars.json` with the local file.
+
+### Lovable
+
+The repo is also connected to a Lovable project (lovable.dev). According to `update-seminars.sh`,
+Lovable does not auto-deploy on direct git pushes. Not verified; the Cloudflare site above is the one
+known to be live.
 
 ---
 
-## Remote Backend (Supabase)
+## Updating the seminar data
 
-- Project ID: `vkaphyqggmuyrzrszgzp`
-- URL: `https://vkaphyqggmuyrzrszgzp.supabase.co`
-- Owned by the `puzne2000` account at supabase.com (not managed by Lovable)
-- Production credentials in `.env` (anon key only — safe to commit)
-
-### Edge Function
-
-The scraper runs as a Supabase Edge Function (Deno runtime).
-
-Deploy:
 ```bash
-npx supabase functions deploy scrape-seminars --project-ref vkaphyqggmuyrzrszgzp
+./update-seminars.sh [source-key]     # scrape_and_sync.sh is an alias for this
 ```
 
-Trigger manually (production):
-```bash
-curl -X POST https://vkaphyqggmuyrzrszgzp.supabase.co/functions/v1/scrape-seminars
+1. Runs the scraper (`scraper.ts`, via `npx deno`) to refresh `public/seminars.json`
+2. Exits if nothing changed
+3. Commits as `chore: update seminars` — amending the previous commit if it was also a data update,
+   so these commits don't pile up
+4. Pushes (`--force-with-lease` when it amended)
+5. Builds and deploys to Cloudflare Pages with Wrangler
+
+If the force push is rejected (the remote moved on), run `git pull --rebase` and re-run.
+
+### Why scraping runs locally
+
+Some university sites (HUJI in particular) block cloud IP ranges, so the scraper runs on this machine
+rather than as a hosted scheduled job. See `docs/scraping.md` for per-source details.
+
+### Scheduled run (cron)
+
+A local cron job runs `update-seminars.sh` every day at 06:30 local time:
+
+```
+30 6 * * * echo "--- $(date) ---" >> /tmp/il-seminars-sync.log 2>&1 && "/Users/guykindler/My Drive/python stuff/il-seminars/update-seminars.sh" >> /tmp/il-seminars-sync.log 2>&1
 ```
 
-Required secrets (set in Supabase dashboard → Project Settings → Edge Functions):
-- `SUPABASE_URL`
-- `SUPABASE_SERVICE_ROLE_KEY`
+Log: `/tmp/il-seminars-sync.log`. Cron only runs while the machine is awake. See `docs/crontab.md`.
 
-### Database Changes
-
-Apply via the Supabase dashboard SQL editor, or push migrations:
-```bash
-npx supabase link --project-ref vkaphyqggmuyrzrszgzp  # first time only
-npx supabase db push
-```
+**Known issue (as of 2026-11-25):** every run since 2026-10-24 has failed with
+`npx: command not found`. Cron starts with a minimal `PATH` that doesn't include `/opt/homebrew/bin`,
+where `node`/`npx` are installed. Until that is fixed, data is only refreshed by running
+`./update-seminars.sh` by hand.
 
 ---
 
-## Scraping: Why It Runs Locally
-
-HUJI's servers block cloud IP ranges, so the scraper cannot run as a remote scheduled job. Instead, scraping runs on a local machine and syncs results to the remote database.
-
-`scrape_and_sync.sh`:
-1. Starts local Supabase if not already running
-2. Triggers the scraper against the local database
-3. Marks all future remote seminars as `possibly_cancelled = true`
-4. Upserts scraped records to the remote Supabase via REST API (dedup via `external_id`; sets `possibly_cancelled = false` for confirmed talks)
-5. Deletes remote records where `date` or `last_scraped_at` is older than 30 days
-
-Scheduled via local cron (Mondays and Thursdays at 8pm UTC):
-```
-0 20 * * 1,4 "/Users/guykindler/My Drive/python stuff/il-seminars/scrape_and_sync.sh" >> /tmp/il-seminars-sync.log 2>&1
-```
-
-See `docs/crontab.md` for the full cron setup.
-
-Manual scrape (local dev only):
-```bash
-./run_scraper.sh
-```
-This triggers the local edge function and tails new log output from `/tmp/il-seminars-functions.log`.
-
----
-
-## Changing Settings / Fixing Errors
+## Changing things
 
 | Area | How |
 |---|---|
-| Frontend behavior | Edit source code, push to `main` |
-| Scraper logic / sources | Edit `supabase/functions/scrape-seminars/index.ts`, then deploy (see above); see `docs/scraping.md` for per-source parsing notes |
-| Edge function secrets | Supabase dashboard → Project Settings → Edge Functions |
-| Database schema | Supabase dashboard SQL editor or `supabase db push` |
-| Cloudflare Pages settings | Cloudflare dashboard → Pages → il-seminars |
+| Frontend behaviour | Edit `src/`, commit, push, then build and deploy with Wrangler (above) |
+| Scraper sources / parsing | Edit `scraper.ts` (see `docs/scraping.md`), then `./update-seminars.sh` |
+| Seminar data only | `./update-seminars.sh` |
+| Cloudflare Pages settings | Cloudflare dashboard → Workers & Pages → il-seminars |
 | Lovable settings | lovable.dev project dashboard |
-| Scrape schedule | `crontab -e` on the local machine |
+| Scrape schedule | `crontab -e` on this machine (see `docs/crontab.md`) |
+
+---
+
+## Leftovers from the Supabase setup
+
+The site used to read from a Supabase database filled by a Supabase Edge Function. That was replaced by
+the static `public/seminars.json` (commit `067ca59`). What remains:
+
+- `.env` (committed) still holds `VITE_SUPABASE_*` values; nothing in `src/` reads them.
+- `supabase/` contains only empty, untracked folders.
+- The remote Supabase project (`vkaphyqggmuyrzrszgzp`, owned by the `puzne2000` account) is no longer
+  used by the site.

@@ -1,27 +1,31 @@
 # Local cron job
 
-A cron job runs `scrape_and_sync.sh` twice a week to keep the remote Supabase database fresh with HUJI seminar data. HUJI's servers block requests from cloud IP ranges (including Supabase's edge function runtime), so the scrape must run from a local machine.
+A cron job runs `update-seminars.sh` every day to refresh the seminar data and deploy it (see
+`docs/deployment.md`). Some university sites (HUJI in particular) block cloud IP ranges, so the scrape
+runs from this machine.
 
 ## The cron entry
 
 ```
-0 20 * * 1,4 "/Users/guykindler/My Drive/python stuff/il-seminars/scrape_and_sync.sh" >> /tmp/il-seminars-sync.log 2>&1
+30 6 * * * echo "--- $(date) ---" >> /tmp/il-seminars-sync.log 2>&1 && "/Users/guykindler/My Drive/python stuff/il-seminars/update-seminars.sh" >> /tmp/il-seminars-sync.log 2>&1
 ```
 
 | Part | Meaning |
 |------|---------|
-| `0 20` | At 8:00pm |
-| `* * 1,4` | Every Monday (1) and Thursday (4) |
+| `30 6 * * *` | Every day at 06:30 local time |
+| `echo "--- $(date) ---"` | Writes a timestamp line to the log before each run |
 | `>> /tmp/il-seminars-sync.log 2>&1` | Append all output to a log file |
 
-Monday and Thursday were chosen to keep data reasonably fresh throughout the week without over-scraping.
+**Note:** cron only runs if the machine is awake at the scheduled time. If the machine is asleep, the job is
+skipped until the next scheduled time.
 
-**Note:** cron only runs if the machine is awake at the scheduled time. If the machine is asleep, the job is skipped until the next scheduled time.
+**Known issue (as of 2026-11-25):** every run since 2026-10-24 has failed with `npx: command not found`.
+Cron starts with a minimal `PATH` that doesn't include `/opt/homebrew/bin`, where `node`/`npx` are installed.
 
 ## View the log
 
 ```bash
-cat /tmp/il-seminars-sync.log
+tail -50 /tmp/il-seminars-sync.log
 ```
 
 ## View the current crontab
@@ -30,27 +34,15 @@ cat /tmp/il-seminars-sync.log
 crontab -l
 ```
 
-## Disable the job
+## Change or disable the schedule
 
 ```bash
-crontab -e   # opens editor — delete the line and save
-```
-
-Or to remove all cron jobs at once:
-
-```bash
-crontab -r
-```
-
-## Change the schedule
-
-```bash
-crontab -e   # opens editor — modify the time/day fields and save
+crontab -e   # opens editor — edit the time/day fields, or delete the line, and save
 ```
 
 Cron schedule format: `minute hour day-of-month month day-of-week`
 
 Examples:
+- `30 6 * * *` — every day at 06:30
 - `0 20 * * 1,4` — Mon & Thu at 8pm
-- `0 8 * * *` — every day at 8am
 - `0 20 * * 0` — every Sunday at 8pm

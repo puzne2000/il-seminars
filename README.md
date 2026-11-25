@@ -4,7 +4,7 @@ A website listing upcoming academic seminars and colloquia at Israeli universiti
 
 ## Live site
 
-Auto-deploys from `main` on every push (check Lovable and Cloudflare dashboards for URLs).
+`https://il-seminars.pages.dev` (Cloudflare Pages). Pushing to `main` does not update it on its own — `./update-seminars.sh` deploys with Wrangler. See `docs/deployment.md`.
 
 ## Tech stack
 
@@ -53,7 +53,7 @@ Logs: `/tmp/il-seminars-frontend.log`
 
 | Script | What it does |
 |--------|-------------|
-| `./update-seminars.sh` | Scrape → commit (amending if last commit was also an update) → push |
+| `./update-seminars.sh` | Scrape → commit (amending if last commit was also an update) → push → build and deploy to Cloudflare Pages |
 | `./run_scraper.sh` | Scrape and write `public/seminars.json` only (no git) |
 | `./scrape_and_sync.sh` | Alias for `update-seminars.sh` |
 | `./start.sh` | Start Vite dev server |
@@ -80,5 +80,5 @@ See `docs/scraping.md` for per-source parsing notes and instructions.
 
 | Branch | Purpose |
 |--------|---------|
-| `main` | Production — auto-deploys everywhere |
+| `main` | Production — deployed to Cloudflare Pages with Wrangler (see `docs/deployment.md`) |
 | `local-branch` | Local dev only — has LAN hostname patch; do NOT push to Lovable |

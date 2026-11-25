@@ -1,14 +1,16 @@
 # Scraping
 
-Scraping is done by a Supabase Edge Function at `supabase/functions/scrape-seminars/index.ts`, triggered manually via HTTP POST. Each source uses a different fetch strategy depending on what the target site supports.
+Scraping is done by `scraper.ts`, a standalone Deno script that writes `public/seminars.json`. Each source uses a different fetch strategy depending on what the target site supports.
 
-## How to trigger
+## How to run
 
 ```bash
-curl -X POST http://127.0.0.1:54321/functions/v1/scrape-seminars
+./run_scraper.sh              # all sources
+./run_scraper.sh weizmann     # one source
 ```
 
-After scraping, any seminar not seen in over 7 days is automatically deleted from the database.
+A full scrape keeps future talks that are no longer listed, marked `possiblyCancelled`; past talks are dropped.
+`./update-seminars.sh` scrapes and then commits and deploys (see `docs/deployment.md`).
 
 ---
 

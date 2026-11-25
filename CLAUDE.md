@@ -28,7 +28,7 @@ npm run test:watch # Vitest (watch mode)
 
 Single-page React app. Seminar data is stored in `public/seminars.json` (committed to the repo) and served as a static file. The scraper is a standalone Deno script (`scraper.ts`) that scrapes university websites and writes the JSON file directly.
 
-**Deploy workflow:** run `./scrape_and_sync.sh` (or `./run_scraper.sh`) → commit `public/seminars.json` → push → Lovable auto-deploys.
+**Deploy workflow:** `./update-seminars.sh` scrapes, commits `public/seminars.json`, pushes, then builds and deploys to Cloudflare Pages (`https://il-seminars.pages.dev`) with Wrangler. **Pushing to `main` alone does not update the live site** — after pushing code changes, run `npm run build && npx wrangler pages deploy dist --project-name il-seminars --branch main`. See `docs/deployment.md`.
 
 **Key files:**
 - `src/pages/Index.tsx` — main page; holds filter state, renders seminar grid
@@ -61,5 +61,5 @@ See `docs/scraping.md` for detailed per-source parsing notes and instructions fo
 
 ## Branches
 
-- `main` — synced with Lovable; auto-deploys to the production site on every push
+- `main` — production; deployed with Wrangler (pushes alone don't deploy — see above)
 - `local-branch` — local-only changes that should not be pushed to Lovable
