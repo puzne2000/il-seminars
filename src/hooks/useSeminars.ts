@@ -15,7 +15,8 @@ export function useSeminars() {
 
       return all
         .filter((s) => s.date >= cutoff)
-        .sort((a, b) => a.date.localeCompare(b.date));
+        // By date, then start time ("HH:MM"; "TBA" sorts after all times)
+        .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
     },
     staleTime: 5 * 60 * 1000, // 5 min
   });

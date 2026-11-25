@@ -59,8 +59,12 @@ const SeminarCard = ({ seminar, index }: SeminarCardProps) => {
         <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
           <User className="w-4 h-4 shrink-0" />
           <span>{seminar.speaker}</span>
-          <span className="text-border">·</span>
-          <span className="truncate">{seminar.affiliation}</span>
+          {seminar.affiliation && (
+            <>
+              <span className="text-border">·</span>
+              <span className="truncate">{seminar.affiliation}</span>
+            </>
+          )}
         </div>
 
         {/* Meta */}
@@ -77,8 +81,10 @@ const SeminarCard = ({ seminar, index }: SeminarCardProps) => {
             <Clock className="w-3.5 h-3.5" />
             {seminar.time}
           </span>
-          <span className="flex items-center gap-1.5">
-            <MapPin className="w-3.5 h-3.5" />
+          {/* min-w-0 + max-w-full let a long location shrink and end in "…" instead of
+              running past the card edge; the full text is in the tooltip. */}
+          <span className="flex items-center gap-1.5 min-w-0 max-w-full" title={seminar.location}>
+            <MapPin className="w-3.5 h-3.5 shrink-0" />
             {/* If location is a non-physical label (currently only "zoom"), make it a clickable link.
               Add other terms (e.g. "online") to the condition if needed. */}
           {seminar.zoomLink && seminar.location.toLowerCase() === "zoom" ? (

@@ -1191,7 +1191,7 @@ async function main() {
     }
   }
 
-  output.sort((a, b) => a.date.localeCompare(b.date));
+  output.sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
 
   await Deno.writeTextFile(JSON_PATH, JSON.stringify(output, null, 2) + "\n");
   console.log(`\nWrote ${output.length} seminars to public/seminars.json`);
