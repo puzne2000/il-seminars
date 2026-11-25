@@ -41,7 +41,18 @@ links, but these are filtered out along with all past events.
 
 ## Adding a new BGU ICS seminar
 
-Add a single entry to `ALL_SOURCES` in `supabase/functions/scrape-seminars/index.ts`:
+Add a single entry to `ALL_SOURCES` in `scraper.ts` using the `bguMathSource()` helper — the
+path is whatever comes between `/en/` and `/meetings.ics` in the feed URL (a slug or a numeric ID):
+
+```typescript
+"bgu-<short-key>": bguMathSource("bgu-<short-key>", "seminars/<slug-or-id>"),           // Seminar
+"bgu-<short-key>": bguMathSource("bgu-<short-key>", "seminars/<slug>", "Colloquium"),  // Colloquium
+```
+
+The seminars index (`https://www.math.bgu.ac.il/en/research/seminars`) is rendered in the browser,
+so open it in a browser to find each seminar's `webcal://` feed link.
+
+Older, equivalent long form:
 
 ```typescript
 "bgu-<short-key>": {
@@ -79,3 +90,8 @@ the `external_id` used for upsert deduplication. Use a short, stable, unique str
 - Room numbers (e.g. `-101`, `201`) are appended to the default location string
   but the building name is not included in the feed.
 - Some future events have `SUMMARY: Speaker Name: TBA` — title is stored as `"TBA"`.
+
+**URL changes:** in November 2026 BGU dropped `/research/` from its event URLs
+(`/en/research/fall2027/seminars/…` → `/en/fall2027/seminars/…`), which changed every event's
+`external_id`. A full scrape does not carry an old entry over as "possibly cancelled" when a fresh entry
+has the same university, date, time and speaker, so such changes don't produce duplicates.

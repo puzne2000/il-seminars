@@ -142,6 +142,62 @@ Each event's individual page is always fetched to retrieve:
 
 ---
 
+## Technion — Mathematics
+
+**URL:** `https://math.technion.ac.il/events.ics`
+
+**Method:** iCalendar feed (WordPress Events Manager), one feed for the whole faculty
+
+- **TLS:** the server does not send its intermediate certificate (GEANT TLS RSA 1). Browsers and macOS curl
+  fetch it themselves; Deno does not, so the scraper ships it in `certs/geant-tls-rsa-1.pem` and passes it to
+  `Deno.createHttpClient({ caCerts })` for this source only. It chains to HARICA TLS RSA Root CA 2021 and is
+  valid until 2039; source: `http://crt.harica.gr/HARICA-GEANT-TLS-R1.cer`.
+- **Series / department:** `CATEGORIES` minus the generic `Seminars` (e.g. `Combinatorics Seminar`,
+  `Colloquium`). `Math Club` (Hebrew student club) and `Graduation Seminars` (M.Sc. talks) are skipped.
+- **Speaker / affiliation:** `Lecturer: Name (Institution)` line of `DESCRIPTION`; if the title starts with
+  `Name (Institution) -- `, that prefix is removed (and supplies a missing affiliation).
+- **Title:** `SUMMARY`, minus a leading `… Seminar: ` label. Slots with no lecturer and a TBA title are skipped.
+- **Abstract:** text after `Abstract:` in `DESCRIPTION`
+- **ID:** `technion-math-<n>` from `UID` (`<n>@math.technion.ac.il`)
+
+The site blocks some generic User-Agents (e.g. plain `Mozilla/5.0`) but accepts the scraper's.
+
+---
+
+## Tel Aviv University — Mathematics (Google Calendars)
+
+**URL:** `https://calendar.google.com/calendar/ical/<calendar-id>/public/basic.ics`, one per seminar
+
+**Method:** iCalendar feeds; the list of calendars is `TAU_MATH_CALENDARS` in `scraper.ts`
+
+The School of Mathematical Sciences embeds ~20 public Google Calendars on
+`https://sites.google.com/view/tau-math-seminars/` (calendar IDs are the `src=` parameters of the embedded
+calendar). Student seminars and an unnamed Hebrew calendar are left out. Each calendar has a fixed series
+name, used as the department.
+
+- **Times:** Google exports UTC (`…T101000Z`); `parseIcsDatetime()` converts them to Israel time.
+- **Skipped:** recurring placeholders (events with `RRULE`), `STATUS:CANCELLED`, and summaries saying
+  "no seminar" / "cancelled". Concrete dates of a recurring series appear as separate events and are kept.
+- **Speaker / title:** organisers format `SUMMARY` differently; `parseTauSummary()` drops the series label,
+  then looks for a `Name (Institution)` chunk (the rest is the title), else `Name, Institution` or just `Name`.
+  A chunk that does not look like a name (e.g. "O-minimality series 3") is treated as the title with speaker
+  TBA. A missing title is taken from `Title:` in `DESCRIPTION`.
+- **Abstract:** `DESCRIPTION` with HTML stripped and any pasted Zoom invitation cut off
+- **Location:** `LOCATION` + ", Tel Aviv University"; a Zoom URL there becomes the zoom link (location "Zoom")
+- **Duplicates:** one talk may appear twice in a calendar (e.g. talk + lunch); entries with the same date and
+  speaker are merged, keeping the more informative one.
+- **ID:** `tau-math-<UID>` (Google UIDs are stable)
+
+---
+
+## BGU — other Mathematics seminars
+
+`bgu-agnt` (Algebraic Geometry & Number Theory), `bgu-operator-algebras` (feed `seminars/219`) and
+`bgu-results-of-others` (feed `seminars/218`) use the same ICS pattern as `bgu-pet` — see
+`docs/bgu-ics-seminars.md`. The `eshnav` series (popular lectures in Hebrew) is not included.
+
+---
+
 ## Adding a new source
 
 **If the site publishes an iCalendar (`.ics`) feed** (e.g. BGU Mathematics seminars), use the shared `scrapeIcsFeed()` function — no new scraper function needed. See `docs/bgu-ics-seminars.md` for the full pattern.
@@ -157,20 +213,8 @@ Each event's individual page is always fetched to retrieve:
 ## Candidate sources (not yet added)
 
 Surveyed 2026-11-25. Agreed order: fix Weizmann (done), then TAU Math, Technion Math and the extra BGU
-seminars (all ICS feeds), then the rest.
+seminars (done), then the rest.
 
-- **TAU Mathematics** — ~20 public Google Calendars, embedded on `https://sites.google.com/view/tau-math-seminars/`.
-  Each is fetchable as `https://calendar.google.com/calendar/ical/<calendar-id>/public/basic.ics`
-  (calendar IDs are the `src=` parameters of the embedded calendar). Active in Nov 2026: Colloquium
-  (`mathtau120@gmail.com`), Algebra, Number Theory, GAFA, Groups & Dynamics, Applied Math, Statistics,
-  Combinatorics, Representation Theory, Games, and `tau.math.seminars@gmail.com` (Geometry & Dynamics).
-  SUMMARY format varies per calendar (e.g. `Series: Speaker (Inst) - Title`).
-- **Technion Mathematics** — one ICS feed for the whole faculty: `https://math.technion.ac.il/events.ics`
-  (WordPress Events Manager; `CATEGORIES` holds the seminar name). Blocks non-browser User-Agents.
-- **BGU Mathematics, more seminars** — same system as `bgu-pet`/`bgu-colloquium`:
-  `https://www.math.bgu.ac.il/en/seminars/<slug-or-id>/meetings.ics` for `agnt` (Algebraic Geometry & Number
-  Theory), `219` (Operator Algebras), `218` (Presenting results of others), `eshnav` (popular, Hebrew).
-  The seminars index page is rendered in the browser, so slugs are found by opening it there.
 - **TAU Exact Sciences** (physics, chemistry, geophysics) — `https://en-exact-sciences.tau.ac.il/events?page=N`,
   server-rendered, 6 per page; many entries give only the series name.
 - **Bar-Ilan Mathematics** — `https://math.biu.ac.il/en/calendar` (server-rendered month view). Its ICS feed

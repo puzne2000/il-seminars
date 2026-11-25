@@ -1,6 +1,6 @@
 // Standalone scraper — replaces the Supabase edge function.
 // Run: deno run --allow-net --allow-read --allow-write --allow-env scraper.ts [source-key]
-// Optional source keys: huji-math, technion-cs, weizmann, huji-physics, bgu-pet, bgu-colloquium
+// Optional source keys: huji-math, huji-physics, technion-cs, technion-math, weizmann, tau-math, bgu-pet, bgu-colloquium, bgu-agnt, bgu-operator-algebras, bgu-results-of-others
 // FIRECRAWL_API_KEY env var is only needed if scrapeWithFirecrawl() is used (no current source calls it).
 
 interface ScrapedSeminar {
@@ -480,7 +480,7 @@ async function scrapeWeizmann(baseUrl: string): Promise<ScrapedSeminar[]> {
   return seminars;
 }
 
-// ── ICS feed scraper ────────────────────────────────────────────────────────
+// ── ICS feeds (shared) ──────────────────────────────────────────────────────
 
 function unfoldIcs(raw: string): string {
   // RFC 5545: long lines are folded with CRLF + whitespace continuation
@@ -488,15 +488,105 @@ function unfoldIcs(raw: string): string {
 }
 
 function unescapeIcs(s: string): string {
-  return s.replace(/\\n/g, "\n").replace(/\\,/g, ",").replace(/\\;/g, ";").replace(/\\\\/g, "\\");
+  return s.replace(/\\n/gi, "\n").replace(/\\,/g, ",").replace(/\\;/g, ";").replace(/\\\\/g, "\\");
 }
 
-function parseIcsDatetime(dtstart: string): { date: string; time: string } {
-  const match = dtstart.match(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})/);
-  if (!match) return { date: "", time: "" };
-  const [, year, month, day, hour, min] = match;
-  return { date: `${year}-${month}-${day}`, time: `${hour}:${min}` };
+const jerusalemParts = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Jerusalem",
+  year: "numeric", month: "2-digit", day: "2-digit",
+  hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+});
+
+// DTSTART value → Israel-local date and time. Handles local times (TZID=Asia/Jerusalem),
+// UTC times ("...Z", as Google Calendar exports) and all-day dates (time "TBA").
+function parseIcsDatetime(value: string): { date: string; time: string } {
+  const m = value.match(/(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})?(Z)?)?/);
+  if (!m) return { date: "", time: "" };
+  const [, year, month, day, hour, min, , utc] = m;
+  if (!hour) return { date: `${year}-${month}-${day}`, time: "TBA" };
+  if (!utc) return { date: `${year}-${month}-${day}`, time: `${hour}:${min}` };
+  const parts = Object.fromEntries(
+    jerusalemParts.formatToParts(new Date(Date.UTC(+year, +month - 1, +day, +hour, +min)))
+      .map((p) => [p.type, p.value]),
+  );
+  return { date: `${parts.year}-${parts.month}-${parts.day}`, time: `${parts.hour}:${parts.minute}` };
 }
+
+interface IcsEvent {
+  uid: string;
+  recurrenceId: string;
+  isRecurring: boolean; // has an RRULE — a repeating slot, not a specific talk
+  cancelled: boolean;
+  date: string;
+  time: string;
+  summary: string;
+  description: string;
+  location: string;
+  url: string;
+  categories: string[];
+}
+
+function parseIcsEvents(rawIcs: string): IcsEvent[] {
+  const raw = unfoldIcs(rawIcs);
+  const getField = (block: string, name: string): string => {
+    const match = block.match(new RegExp(`^${name}(?:;[^:\\r\\n]*)?:(.*)$`, "m"));
+    return match ? match[1].trim() : "";
+  };
+  return raw.split("BEGIN:VEVENT").slice(1).map((chunk) => {
+    const block = chunk.split("END:VEVENT")[0];
+    const { date, time } = parseIcsDatetime(getField(block, "DTSTART"));
+    return {
+      uid: getField(block, "UID"),
+      recurrenceId: getField(block, "RECURRENCE-ID"),
+      isRecurring: /^RRULE[:;]/m.test(block),
+      cancelled: /^STATUS:CANCELLED/m.test(block),
+      date,
+      time,
+      summary: unescapeIcs(getField(block, "SUMMARY")),
+      description: unescapeIcs(getField(block, "DESCRIPTION")),
+      location: unescapeIcs(getField(block, "LOCATION")),
+      url: unescapeIcs(getField(block, "URL")),
+      categories: unescapeIcs(getField(block, "CATEGORIES")).split(",").map((c) => c.trim()).filter(Boolean),
+    };
+  });
+}
+
+async function fetchIcsEvents(icsUrl: string, client?: Deno.HttpClient): Promise<IcsEvent[]> {
+  console.log(`Fetching ICS feed: ${icsUrl}`);
+  const response = await fetch(icsUrl, {
+    headers: { "User-Agent": "Mozilla/5.0 (compatible; seminar-scraper/1.0)" },
+    ...(client && { client }),
+  });
+  if (!response.ok) throw new Error(`${icsUrl}: HTTP ${response.status}`);
+  const text = await response.text();
+  if (!text.startsWith("BEGIN:VCALENDAR")) throw new Error(`${icsUrl}: not an iCalendar feed`);
+  return parseIcsEvents(text);
+}
+
+function upcomingTalks(events: IcsEvent[]): IcsEvent[] {
+  const today = new Date().toISOString().slice(0, 10);
+  return events.filter((e) => e.date && e.date >= today && !e.isRecurring && !e.cancelled);
+}
+
+// "Name (Institution)" → { name, affiliation }; the institution may itself contain
+// parentheses, e.g. "Massachusetts Institute of Technology (MIT)".
+function splitNameAffiliation(s: string): { name: string; affiliation: string } {
+  const m = s.trim().match(/^([^()]*?)\s*\((.*)\)\s*$/);
+  return m ? { name: m[1].trim(), affiliation: m[2].trim() } : { name: s.trim(), affiliation: "" };
+}
+
+const isTbaTitle = (s: string) => !s || /^tb[ad]\.?$/i.test(s.trim());
+
+// Rough check that a string is a person's name ("Jarek Kędra", "Nachi Avraham-Re'em"),
+// not a title fragment ("O-minimality series 3").
+const NAME_PARTICLES = new Set(["de", "van", "von", "der", "den", "da", "di", "du", "le", "la", "ben", "bar", "al", "el"]);
+function isLikelyName(s: string): boolean {
+  const words = s.trim().split(/\s+/);
+  return words.length >= 1 && words.length <= 5 && !/\d/.test(s) &&
+    words.every((w) => /^\p{Lu}/u.test(w) || NAME_PARTICLES.has(w.toLowerCase()));
+}
+
+// ── BGU Mathematics (ICS) ───────────────────────────────────────────────────
 
 interface IcsFeedOptions {
   university: string;
@@ -509,29 +599,12 @@ interface IcsFeedOptions {
 }
 
 async function scrapeIcsFeed(icsUrl: string, opts: IcsFeedOptions): Promise<ScrapedSeminar[]> {
-  console.log(`Fetching ICS feed: ${icsUrl}`);
-  const response = await fetch(icsUrl, {
-    headers: { "User-Agent": "Mozilla/5.0 (compatible; seminar-scraper/1.0)" },
-  });
-  const raw = unfoldIcs(await response.text());
-  const today = new Date().toISOString().slice(0, 10);
   const seminars: ScrapedSeminar[] = [];
 
-  const getField = (block: string, name: string): string => {
-    const match = block.match(new RegExp(`^${name}(?:;[^:]*)?:(.*)$`, "m"));
-    return match ? match[1].trim() : "";
-  };
-
-  for (const block of raw.split("BEGIN:VEVENT").slice(1)) {
-    const dtstart = getField(block, "DTSTART");
-    const { date, time } = parseIcsDatetime(dtstart);
-    if (!date || date < today) continue;
-
-    const summary = unescapeIcs(getField(block, "SUMMARY"));
-    const description = unescapeIcs(getField(block, "DESCRIPTION"));
-    const locationRaw = unescapeIcs(getField(block, "LOCATION"));
-    const uid = getField(block, "UID");
-    const sourceUrl = unescapeIcs(getField(block, "URL"));
+  for (const ev of upcomingTalks(await fetchIcsEvents(icsUrl))) {
+    if (ev.time === "TBA") continue;
+    const { date, time, summary, description, url: sourceUrl } = ev;
+    if (/^no (talk|seminar|meeting)\b/i.test(summary)) continue;
 
     // SUMMARY format: "Speaker Name: Talk Title"
     let speaker = "TBA";
@@ -545,13 +618,13 @@ async function scrapeIcsFeed(icsUrl: string, opts: IcsFeedOptions): Promise<Scra
     // LOCATION: Zoom meeting URL → zoom_link; physical room → append to default
     let location = opts.default_location;
     let zoom_link: string | undefined;
-    if (/zoom\.us\/j\//i.test(locationRaw)) {
-      zoom_link = locationRaw;
-    } else if (locationRaw && !/^https?:\/\//.test(locationRaw)) {
-      location = `${opts.default_location}, Room ${locationRaw}`;
+    if (/zoom\.us\/j\//i.test(ev.location)) {
+      zoom_link = ev.location;
+    } else if (ev.location && !/^https?:\/\//.test(ev.location)) {
+      location = `${opts.default_location}, Room ${ev.location}`;
     }
     if (!zoom_link) {
-      zoom_link = extractZoomLink(description) || extractZoomLink(block);
+      zoom_link = extractZoomLink(description);
     }
 
     // Build a stable external_id from the event's URL path — BGU regenerates UIDs on every feed export
@@ -580,6 +653,219 @@ async function scrapeIcsFeed(icsUrl: string, opts: IcsFeedOptions): Promise<Scra
   return seminars;
 }
 
+function bguMathSource(key: string, feedPath: string, type: "Seminar" | "Colloquium" = "Seminar") {
+  return {
+    url: `https://www.math.bgu.ac.il/en/${feedPath}/meetings.ics`,
+    scraper: (url: string) => scrapeIcsFeed(url, {
+      university: "Ben-Gurion University",
+      department: "Department of Mathematics",
+      subject_area: "Mathematics",
+      type,
+      id_prefix: key,
+      default_location: "Department of Mathematics, Ben-Gurion University",
+      affiliation: "Ben-Gurion University",
+    }),
+  };
+}
+
+// ── Technion Mathematics (ICS) ──────────────────────────────────────────────
+// One WordPress Events Manager feed for the whole faculty. CATEGORIES holds the seminar
+// name (plus a generic "Seminars"); DESCRIPTION starts with "Lecturer:", "Location:" and
+// "Abstract:" lines.
+
+// Non-research series: the Hebrew math club and M.Sc. thesis talks.
+const TECHNION_MATH_SKIP = new Set(["Math Club", "Graduation Seminars"]);
+
+// math.technion.ac.il does not send its intermediate certificate (GEANT TLS RSA 1, issued by
+// HARICA TLS RSA Root CA 2021). Browsers fetch it themselves; Deno doesn't, so we ship it.
+// Source: http://crt.harica.gr/HARICA-GEANT-TLS-R1.cer (valid until 2039).
+const TECHNION_CA_CERT = new URL("./certs/geant-tls-rsa-1.pem", import.meta.url);
+
+async function scrapeTechnionMath(icsUrl: string): Promise<ScrapedSeminar[]> {
+  const seminars: ScrapedSeminar[] = [];
+  const client = Deno.createHttpClient({ caCerts: [await Deno.readTextFile(TECHNION_CA_CERT)] });
+
+  let events: IcsEvent[];
+  try {
+    events = await fetchIcsEvents(icsUrl, client);
+  } finally {
+    client.close();
+  }
+
+  for (const ev of upcomingTalks(events)) {
+    const series = ev.categories.find((c) => c !== "Seminars") ?? "Seminar";
+    if (TECHNION_MATH_SKIP.has(series)) continue;
+
+    const desc = ev.description;
+    const lecturerLine = desc.match(/^[ \t]*Lecturer:[ \t]*(.*)$/m)?.[1].trim() ?? "";
+    let { name: speaker, affiliation } = splitNameAffiliation(lecturerLine);
+
+    // Titles may carry a series label ("Cable Car Algebra Seminar: ...") or the speaker
+    // ("Anton Khoroshkin (Haifa) -- Gröbner bases ..."); strip them.
+    let title = ev.summary.replace(/^[^:]*\bseminar:\s*/i, "").trim();
+    const dash = title.match(/^(.*?)\s+--\s+(.*)$/);
+    if (dash) {
+      const left = splitNameAffiliation(dash[1]);
+      if (/seminar/i.test(dash[1]) || (speaker && left.name.includes(speaker)) || left.affiliation) {
+        if (!speaker && !/seminar/i.test(dash[1])) ({ name: speaker, affiliation } = left);
+        else if (!affiliation && speaker && left.name.includes(speaker)) affiliation = left.affiliation;
+        title = dash[2].trim();
+      }
+    }
+    if (!speaker && isTbaTitle(title)) continue; // empty placeholder slot
+
+    const abstractMatch = desc.match(/Abstract:\s*([\s\S]*)$/);
+    const abstract = (abstractMatch ? abstractMatch[1] : desc.replace(/^\s*(Lecturer|Location):.*$/gm, ""))
+      .replace(/\s+/g, " ").trim();
+
+    const room = ev.location || desc.match(/^[ \t]*Location:[ \t]*(.*)$/m)?.[1].trim() || "";
+    const uidNum = ev.uid.split("@")[0];
+
+    seminars.push({
+      external_id: `technion-math-${uidNum || `${ev.date}-${ev.time.replace(":", "")}`}`,
+      title: isTbaTitle(title) ? "TBA" : title,
+      speaker: speaker || "TBA",
+      affiliation,
+      university: "Technion",
+      department: series,
+      subject_area: "Mathematics",
+      date: ev.date,
+      time: ev.time,
+      location: !room ? "Faculty of Mathematics, Technion" : /technion/i.test(room) ? room : `${room}, Technion`,
+      abstract,
+      type: /colloquium/i.test(series) ? "Colloquium" : "Seminar",
+      source_url: ev.url || "https://math.technion.ac.il/en/seminars-and-events/",
+      zoom_link: extractZoomLink(`${ev.location} ${desc}`),
+    });
+  }
+
+  return seminars;
+}
+
+// ── TAU Mathematics (Google Calendars) ──────────────────────────────────────
+// The School of Mathematical Sciences keeps each seminar in its own public Google Calendar
+// (embedded on https://sites.google.com/view/tau-math-seminars/). Each calendar is a public
+// ICS feed. Organisers format SUMMARY differently, e.g.
+//   "Math Colloquium: Benjamin Weiss (Hebrew University) - Dynamical aspects of ..."
+//   "Groups & Dynamics | Omer Segev (Technion) | Conservativity and ..."
+//   "Combinatorics seminar: Linear Hashing ... – Or Zamir (Tel Aviv University)"
+//   "Applied Math Seminar - Boaz Nadler, Weizmann Institute of Science"
+//   "Geometry & Dynamics seminar, Frol Zapolsky (University of Haifa), The Lagrangian ..."
+
+interface GoogleCalendarSeminar {
+  calendarId: string;
+  series: string;
+  type?: "Seminar" | "Colloquium";
+}
+
+const TAU_MATH_CALENDARS: GoogleCalendarSeminar[] = [
+  { calendarId: "mathtau120@gmail.com", series: "Mathematics Colloquium", type: "Colloquium" },
+  { calendarId: "pbn142281ikep0u7d52u2np9og@group.calendar.google.com", series: "Algebra Seminar" },
+  { calendarId: "c07ibgli0k0s4cn1qhg1holigg@group.calendar.google.com", series: "Number Theory Seminar" },
+  { calendarId: "h1473hj3gf5rs6bnpu0pvq0s1c@group.calendar.google.com", series: "Combinatorics Seminar" },
+  { calendarId: "6dbc3bd81e44a449165b2eaed6a4a96a19e6b0dd51902c1aebebec2a60f95fb8@group.calendar.google.com", series: "GAFA Seminar" },
+  { calendarId: "785lg6fjgu1iheq1b1vcqgu9bc@group.calendar.google.com", series: "Groups & Dynamics Seminar" },
+  { calendarId: "3ccd1602a52399c573ee8e78781543d8a6be5d94d26b2ee0b342188e4759e669@group.calendar.google.com", series: "Representation Theory Seminar" },
+  { calendarId: "i93ipfiak8fafjrd996p03rgig@group.calendar.google.com", series: "Applied Math Seminar" },
+  { calendarId: "d0qum5kdjio03uos9bgtohj7ag@group.calendar.google.com", series: "Statistics Seminar" },
+  { calendarId: "ihge34d366v2skemqgag5nies8@group.calendar.google.com", series: "Game Theory Seminar" },
+  { calendarId: "tau.math.seminars@gmail.com", series: "Geometry & Dynamics Seminar" },
+  { calendarId: "lcn2080c6557hce4a0cvj7qht8@group.calendar.google.com", series: "Horowitz Seminar on Probability, Ergodic Theory and Dynamical Systems" },
+  { calendarId: "s16l44f9na42bu6c5b5g0d3qk0@group.calendar.google.com", series: "Seminar in Real & Complex Geometry" },
+  { calendarId: "u247cm43jtb77pr4fuo4vk72i0@group.calendar.google.com", series: "Field Arithmetic Seminar" },
+  { calendarId: "o9sgdbqi3ftt42aobpmphnjbic@group.calendar.google.com", series: "Joint Israeli Probability Seminar" },
+];
+
+const AFFILIATION_WORDS = /universit|institut|college|technion|school|lab\b|research|center|centre|\bU\b|\bTAU\b|\bHUJI\b|\bBGU\b|\bMIT\b/i;
+
+function parseTauSummary(summary: string): { speaker: string; affiliation: string; title: string } {
+  let s = summary.replace(/\s*\+\s*lunch\s*$/i, "").trim();
+  // Drop the series label: everything up to the first ":" or "|" or "seminar,"/"seminar -"
+  s = s.replace(/^[^:|]*?(?:seminar|colloquium)[^:|,]*?(?:\s*[:|,]\s*|\s+[-–]\s+)/i, "")
+    .replace(/^[^:|]*\|\s*/, "")
+    .trim();
+
+  // Prefer a "Name (Institution)" chunk; whatever surrounds it is the title.
+  const pieces = s.split(/\s+\|\s+|\s+[-–]\s+|,\s+/);
+  const idx = pieces.findIndex((p) => /^[^()]{2,60}\(.+\)$/.test(p.trim()) && isLikelyName(splitNameAffiliation(p).name));
+  if (idx !== -1) {
+    const { name, affiliation } = splitNameAffiliation(pieces[idx]);
+    const title = [...pieces.slice(0, idx), ...pieces.slice(idx + 1)].join(" - ").replace(/\.$/, "").trim();
+    return { speaker: name, affiliation, title: isTbaTitle(title) ? "" : title };
+  }
+  // "Name, Institution" / "Name - Institution" / just "Name" — or no speaker at all
+  // (e.g. a lecture series: "O-minimality series 3 - O-minimal structures (cont'd)")
+  const [first, ...rest] = pieces;
+  if (!isLikelyName(first)) return { speaker: "", affiliation: "", title: isTbaTitle(s) ? "" : s };
+  const restText = rest.join(", ").trim();
+  if (restText && AFFILIATION_WORDS.test(restText)) return { speaker: first.trim(), affiliation: restText, title: "" };
+  if (!restText) return { speaker: first.trim(), affiliation: "", title: "" };
+  return { speaker: first.trim(), affiliation: "", title: isTbaTitle(restText) ? "" : restText };
+}
+
+function cleanCalendarDescription(desc: string): string {
+  // Some descriptions end with a pasted Zoom invitation; drop it.
+  const invite = desc.search(/─{3,}|[^.<>\n]*is inviting you to a scheduled Zoom meeting/i);
+  return htmlToText((invite === -1 ? desc : desc.slice(0, invite)).replace(/<\/div>|<div[^>]*>/gi, " "));
+}
+
+// Higher = more informative; used to pick between duplicate entries of one talk.
+const seminarInfoScore = (s: ScrapedSeminar) =>
+  (s.title !== "TBA" ? 2 : 0) + (s.affiliation ? 1 : 0) + (s.abstract ? 1 : 0);
+
+async function scrapeGoogleCalendarSeminars(
+  calendars: GoogleCalendarSeminar[],
+  opts: { idPrefix: string; university: string; department: string; subject_area: string; campus: string },
+): Promise<ScrapedSeminar[]> {
+  // Keyed by date + speaker: some calendars hold the same talk twice (e.g. talk + lunch entry).
+  const byTalk = new Map<string, ScrapedSeminar>();
+
+  const results = await Promise.allSettled(calendars.map(async (cal) => {
+    const url = `https://calendar.google.com/calendar/ical/${encodeURIComponent(cal.calendarId)}/public/basic.ics`;
+    return { cal, url, events: upcomingTalks(await fetchIcsEvents(url)) };
+  }));
+
+  for (const r of results) {
+    if (r.status === "rejected") { console.error(`  calendar failed: ${r.reason}`); continue; }
+    const { cal, url, events } = r.value;
+    for (const ev of events) {
+      if (/\bno (seminar|colloquium|meeting)\b|\bcancel+ed\b/i.test(ev.summary)) continue;
+      let { speaker, affiliation, title } = parseTauSummary(ev.summary);
+      const descText = cleanCalendarDescription(ev.description);
+      if (!title) title = descText.match(/Title:\s*(.*?)\s*(?=Speaker:|Abstract\b|$)/i)?.[1].trim() ?? "";
+      if (!speaker && isTbaTitle(title)) continue;
+
+      const abstract = descText.replace(/^.*?Abstract:?\s*/i, "").replace(/^TBA\.?$/i, "").trim();
+      const zoom = extractZoomLink(`${ev.location} ${ev.description}`);
+      const room = /^https?:\/\//.test(ev.location) ? "" : ev.location.trim();
+      const location = room
+        ? (room.includes(opts.campus) ? room : `${room}, ${opts.campus}`)
+        : zoom ? "Zoom" : opts.campus;
+
+      const seminar: ScrapedSeminar = {
+        external_id: `${opts.idPrefix}-${(ev.uid.split("@")[0] + (ev.recurrenceId ? `-${ev.recurrenceId}` : "")).replace(/[^a-zA-Z0-9-]/g, "")}`,
+        title: title || "TBA",
+        speaker: speaker || "TBA",
+        affiliation,
+        university: opts.university,
+        department: cal.series,
+        subject_area: opts.subject_area,
+        date: ev.date,
+        time: ev.time,
+        location,
+        abstract,
+        type: cal.type ?? "Seminar",
+        source_url: ev.url || url.replace("/ical/", "/embed?src=").replace("/public/basic.ics", ""),
+        zoom_link: zoom,
+      };
+      const key = speaker ? `${ev.date} ${speaker.toLowerCase()}` : `${ev.date} ${ev.time} ${title}`;
+      const existing = byTalk.get(key);
+      if (!existing || seminarInfoScore(seminar) > seminarInfoScore(existing)) byTalk.set(key, seminar);
+    }
+  }
+  return [...byTalk.values()];
+}
+
 // ── Sources ──────────────────────────────────────────────────────────────────
 
 const ALL_SOURCES: Record<string, { url: string; scraper: (url: string) => Promise<ScrapedSeminar[]> }> = {
@@ -599,28 +885,23 @@ const ALL_SOURCES: Record<string, { url: string; scraper: (url: string) => Promi
     url: "https://phys.huji.ac.il/calendar/upcoming",
     scraper: scrapeHujiPhysics,
   },
-  "bgu-pet": {
-    url: "https://www.math.bgu.ac.il/en/research/seminars/bgu-probability-and-ergodic-theory-pet-seminar/meetings.ics",
-    scraper: (url) => scrapeIcsFeed(url, {
-      university: "Ben-Gurion University",
-      department: "Department of Mathematics",
-      subject_area: "Mathematics",
-      type: "Seminar",
-      id_prefix: "bgu-pet",
-      default_location: "Department of Mathematics, Ben-Gurion University",
-      affiliation: "Ben-Gurion University",
-    }),
+  "bgu-pet": bguMathSource("bgu-pet", "research/seminars/bgu-probability-and-ergodic-theory-pet-seminar"),
+  "bgu-colloquium": bguMathSource("bgu-colloquium", "research/seminars/colloquium", "Colloquium"),
+  "bgu-agnt": bguMathSource("bgu-agnt", "seminars/agnt"),
+  "bgu-operator-algebras": bguMathSource("bgu-operator-algebras", "seminars/219"),
+  "bgu-results-of-others": bguMathSource("bgu-results-of-others", "seminars/218"),
+  "technion-math": {
+    url: "https://math.technion.ac.il/events.ics",
+    scraper: scrapeTechnionMath,
   },
-  "bgu-colloquium": {
-    url: "https://www.math.bgu.ac.il/en/research/seminars/colloquium/meetings.ics",
-    scraper: (url) => scrapeIcsFeed(url, {
-      university: "Ben-Gurion University",
-      department: "Department of Mathematics",
+  "tau-math": {
+    url: "https://sites.google.com/view/tau-math-seminars/",
+    scraper: () => scrapeGoogleCalendarSeminars(TAU_MATH_CALENDARS, {
+      idPrefix: "tau-math",
+      university: "Tel Aviv University",
+      department: "School of Mathematical Sciences",
       subject_area: "Mathematics",
-      type: "Colloquium",
-      id_prefix: "bgu-colloquium",
-      default_location: "Department of Mathematics, Ben-Gurion University",
-      affiliation: "Ben-Gurion University",
+      campus: "Tel Aviv University",
     }),
   },
 };
@@ -689,7 +970,10 @@ async function main() {
     else console.error("Source failed:", r.reason);
   }
 
-  const futureFresh = freshRaw.filter((s) => s.date >= today);
+  // A source may list the same talk twice (e.g. on two listing pages) — keep one per ID.
+  const futureFresh = [...new Map(
+    freshRaw.filter((s) => s.date >= today).map((s) => [s.external_id, s]),
+  ).values()];
   const output: Seminar[] = [];
 
   if (sourceArg) {
@@ -701,11 +985,16 @@ async function main() {
     for (const s of futureFresh) merged.set(s.external_id, toFrontendSeminar(s));
     output.push(...merged.values());
   } else {
-    // Full scrape: fresh results + carry over existing future entries not found (mark as possibly cancelled)
+    // Full scrape: fresh results + carry over existing future entries not found (mark as possibly cancelled).
+    // An entry whose ID changed (e.g. the site changed its URLs) is matched by university, date,
+    // time and speaker so it isn't carried over as a duplicate.
     const newIds = new Set(futureFresh.map((s) => s.external_id));
+    const talkKey = (s: { university: string; date: string; time: string; speaker: string }) =>
+      `${s.university}|${s.date}|${s.time}|${s.speaker.toLowerCase()}`;
+    const newTalks = new Set(futureFresh.map(talkKey));
     for (const s of futureFresh) output.push(toFrontendSeminar(s));
     for (const s of existing) {
-      if (s.date >= today && !newIds.has(s.id)) {
+      if (s.date >= today && !newIds.has(s.id) && !newTalks.has(talkKey(s))) {
         output.push({ ...s, possiblyCancelled: true });
       }
     }

@@ -10,7 +10,7 @@ A web app that aggregates and displays academic seminars held at Israeli univers
 
 - **Frontend**: React 18 + TypeScript, Vite, Tailwind CSS, shadcn-ui, TanStack React Query
 - **Backend**: Supabase (PostgreSQL database + Edge Functions)
-- **Scraping**: Direct HTML fetch + regex parsing (all sources are server-rendered)
+- **Scraping**: Direct HTML fetch + regex parsing (server-rendered sources), JSON (Weizmann) and iCalendar feeds (BGU, Technion Math, TAU Math)
 
 ## Frontend
 
@@ -50,9 +50,12 @@ A Supabase Edge Function (Deno runtime) that:
 | Hebrew University – Mathematics | `mathematics.huji.ac.il/eventss/events-seminars` | `scrapeHujiColloquiums()` |
 | Hebrew University – Physics | `phys.huji.ac.il/calendar/upcoming` | `scrapeHujiPhysics()` |
 | Technion – Computer Science | `cs.technion.ac.il/events/` | `scrapeTechnionCS()` |
-| Weizmann Institute | `weizmann.ac.il/pages/calendar` | `scrapeWeizmann()` |
+| Technion – Mathematics | `math.technion.ac.il/events.ics` | `scrapeTechnionMath()` |
+| Weizmann Institute | `weizmann.ac.il/pages/news/events/ajax/events?month=…` (JSON) | `scrapeWeizmann()` |
+| Tel Aviv University – Mathematics | ~15 public Google Calendars (`calendar.google.com/calendar/ical/…/public/basic.ics`) | `scrapeGoogleCalendarSeminars()` |
 | Ben-Gurion University – PET Seminar | `math.bgu.ac.il/…/bgu-probability-and-ergodic-theory-pet-seminar/meetings.ics` | `scrapeIcsFeed()` |
 | Ben-Gurion University – Math Colloquium | `math.bgu.ac.il/…/colloquium/meetings.ics` | `scrapeIcsFeed()` |
+| Ben-Gurion University – AG & Number Theory, Operator Algebras, Results of Others | `math.bgu.ac.il/en/seminars/{agnt,219,218}/meetings.ics` | `scrapeIcsFeed()` |
 
 Each scraper extracts title, speaker, affiliation, date, time, location, abstract, zoom link (when present), and other metadata. For HUJI Physics, individual event pages are also fetched to retrieve abstracts, lecturer info, and zoom links. The function is idempotent — re-running it updates existing records rather than duplicating them.
 

@@ -27,7 +27,7 @@ To scrape a single source:
 ./update-seminars.sh huji-math
 ```
 
-Valid source keys: `huji-math`, `technion-cs`, `weizmann`, `huji-physics`, `bgu-pet`, `bgu-colloquium`
+Valid source keys: `huji-math`, `huji-physics`, `technion-cs`, `technion-math`, `weizmann`, `tau-math`, `bgu-pet`, `bgu-colloquium`, `bgu-agnt`, `bgu-operator-algebras`, `bgu-results-of-others`
 
 ## Local development
 
