@@ -37,6 +37,10 @@
 set -e
 cd "$(dirname "$0")"
 
+# cron runs with a minimal PATH (/usr/bin:/bin) that doesn't include Homebrew, where node/npx
+# live; without this every scheduled run failed with "npx: command not found".
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+
 # ── 1. Scrape ─────────────────────────────────────────────────────────────────
 echo "Scraping${1:+ [$1]}..."
 npx deno run --allow-net --allow-read --allow-write --allow-env scraper.ts "$@"

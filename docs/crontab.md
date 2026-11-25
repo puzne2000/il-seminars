@@ -19,8 +19,16 @@ runs from this machine.
 **Note:** cron only runs if the machine is awake at the scheduled time. If the machine is asleep, the job is
 skipped until the next scheduled time.
 
-**Known issue (as of 2026-11-25):** every run since 2026-10-24 has failed with `npx: command not found`.
-Cron starts with a minimal `PATH` that doesn't include `/opt/homebrew/bin`, where `node`/`npx` are installed.
+Cron starts with a minimal `PATH` (`/usr/bin:/bin`). `update-seminars.sh` adds `/opt/homebrew/bin` (where
+`node`/`npx` are installed) itself; before that fix (2026-11-25), every run from 2026-10-24 failed with
+`npx: command not found`.
+
+To test the job the way cron runs it:
+
+```bash
+env -i HOME="$HOME" USER="$USER" LOGNAME="$USER" SHELL=/bin/sh PATH=/usr/bin:/bin \
+  /bin/sh -c '"/Users/guykindler/My Drive/python stuff/il-seminars/update-seminars.sh"'
+```
 
 ## View the log
 

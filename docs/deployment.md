@@ -87,10 +87,11 @@ A local cron job runs `update-seminars.sh` every day at 06:30 local time:
 
 Log: `/tmp/il-seminars-sync.log`. Cron only runs while the machine is awake. See `docs/crontab.md`.
 
-**Known issue (as of 2026-11-25):** every run since 2026-10-24 has failed with
-`npx: command not found`. Cron starts with a minimal `PATH` that doesn't include `/opt/homebrew/bin`,
-where `node`/`npx` are installed. Until that is fixed, data is only refreshed by running
-`./update-seminars.sh` by hand.
+Cron starts with a minimal `PATH` (`/usr/bin:/bin`) that doesn't include `/opt/homebrew/bin`, where
+`node`/`npx` are installed, so `update-seminars.sh` adds Homebrew to `PATH` itself. Before that fix
+(2026-11-25) every run from 2026-10-24 failed with `npx: command not found`. Pushing uses the macOS
+keychain credential helper and deploying uses the saved Wrangler login, so both need the user to be
+logged in.
 
 ---
 
