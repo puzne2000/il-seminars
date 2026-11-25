@@ -75,32 +75,40 @@ HTML entities (`&amp;`, etc.) are decoded before storing.
 
 ---
 
-## Weizmann Institute of Science — Integrated Calendar
+## Weizmann Institute of Science — Events & Lectures
 
-**URL:** `https://www.weizmann.ac.il/pages/calendar`
+**URL:** `https://www.weizmann.ac.il/pages/news/events/ajax/events?month=YYYY-MM`
 
-**Method:** Direct HTML fetch (no Firecrawl)
+**Method:** JSON endpoint, one request per month (current month + next 3)
 
-The Weizmann calendar is a Drupal 7 site with server-rendered HTML. Events are listed as `<li class="views-row ...">` elements.
+In November 2026 Weizmann replaced its Drupal 7 calendar (`/pages/calendar`, which now redirects to
+`/pages/news/events`). The new events page is rendered in the browser from a JSON endpoint, which the
+scraper calls directly. The response is `{ events: [...], eventTypes, faculties, organizers }`.
 
-**Parsing approach:**
+**Field mapping** (per event):
 
-The HTML is split into per-event blocks on `views-row`. Within each block:
-
-- **Event type:** from the `<span class="event-type"><span class="TYPE">` pattern — only `lecture`, `seminar`, and `colloquium` types are kept (conferences, workshops, etc. are skipped)
-- **Event ID and URL:** extracted from the ICS calendar link (`/pages/event/NNNN/ics`) — the individual event page is `/pages/event/NNNN`
-- **Date:** day from `start-date-day`, month+year from `start-date-month` (e.g. "March 2026"), parsed with a month-name lookup table
-- **Time:** start time from `event-time-wrapper`
-- **Title:** the talk subtitle (`views-label-field-subtitle-english` → `field-content`) when present; otherwise falls back to the H3 event/series title
-- **Speaker:** from the `views-label-field-lecturer-english` table row; text before the first `<br>` is used (discards secondary info like "lunch at 12:45")
-- **Location:** `event-location-wrapper`
-- **Abstract:** `event-abstract-wrapper` (full text already present inline in the listing page HTML)
-- **Zoom link:** extracted from the per-event HTML block using a `zoom.us/j/` URL regex
+- **Filter:** only `type_name` `Lectures` and `Colloquia` are kept (skips `Conference`, `Cultural`,
+  `Academic` — student days, retreats). Events whose title says "no seminar" or "cancelled" are skipped.
+- **Title / department:** `title_en` is sometimes the series name ("Vision and AI") with the talk title in
+  `subtitle_en`, and sometimes the talk title with a note in `subtitle_en` ("Light refreshments 11:30",
+  the speaker's name, "Department of …"). The subtitle is used as the title unless it looks like such a
+  note; when it is used, `title_en` becomes the department (series). Otherwise the department is the first
+  sponsor, then the faculty. A title containing `@` (contact details) is replaced with "<department> seminar".
+- **Speaker:** `lecturers[].name`, joined; placeholders like "Will be updated" become `TBA`
+- **Affiliation:** first `lecturers[].affiliation` that is short (≤100 chars) and not a bio paragraph
+- **Subject area:** from `cat_name` (faculty): Physics, Chemistry, Life Sciences → Biology; Mathematics and
+  Computer Science → Computer Science if a sponsor is the CS department, else Mathematics; anything else
+  (e.g. "General Event") → Natural Sciences
+- **Date/time:** `start` (`YYYY-MM-DD HH:MM:SS`, Israel time); all-day events get `TBA`
+- **Location:** `room`, `building`
+- **Abstract:** `abstract_en` with HTML stripped
+- **Zoom link:** `virtual_url` if it is a Zoom link, else a `zoom.us/j/` link found in the abstract
+- **Source URL:** `https://www.weizmann.ac.il/pages/news/events/event/<id>`; ID is `weizmann-<id>` (UUID)
 
 **Known limitations:**
-- Affiliation defaults to "Weizmann Institute of Science"; `university` is stored as `"Weizmann Institute"` to match the frontend filter
-- Subject area is hardcoded to "Natural Sciences" (no reliable per-event discipline field)
-- When no subtitle is present, the series/event title is used as the seminar title, which is sometimes generic (e.g. "Special Guest Seminar")
+- The central calendar carries only some Faculty of Mathematics and Computer Science seminars; the faculty's
+  own page (`https://www.weizmann.ac.il/math/events`) lists more.
+- A few non-talk "Lectures" entries slip through (e.g. hands-on demos, research days).
 
 ---
 
@@ -143,3 +151,32 @@ Each event's individual page is always fetched to retrieve:
 2. Add a scraper function following the existing patterns — split HTML into per-event blocks, then extract fields with targeted regex
 3. Add an entry to `ALL_SOURCES` in the scraper file
 4. Test by triggering the function and checking the database
+
+---
+
+## Candidate sources (not yet added)
+
+Surveyed 2026-11-25. Agreed order: fix Weizmann (done), then TAU Math, Technion Math and the extra BGU
+seminars (all ICS feeds), then the rest.
+
+- **TAU Mathematics** — ~20 public Google Calendars, embedded on `https://sites.google.com/view/tau-math-seminars/`.
+  Each is fetchable as `https://calendar.google.com/calendar/ical/<calendar-id>/public/basic.ics`
+  (calendar IDs are the `src=` parameters of the embedded calendar). Active in Nov 2026: Colloquium
+  (`mathtau120@gmail.com`), Algebra, Number Theory, GAFA, Groups & Dynamics, Applied Math, Statistics,
+  Combinatorics, Representation Theory, Games, and `tau.math.seminars@gmail.com` (Geometry & Dynamics).
+  SUMMARY format varies per calendar (e.g. `Series: Speaker (Inst) - Title`).
+- **Technion Mathematics** — one ICS feed for the whole faculty: `https://math.technion.ac.il/events.ics`
+  (WordPress Events Manager; `CATEGORIES` holds the seminar name). Blocks non-browser User-Agents.
+- **BGU Mathematics, more seminars** — same system as `bgu-pet`/`bgu-colloquium`:
+  `https://www.math.bgu.ac.il/en/seminars/<slug-or-id>/meetings.ics` for `agnt` (Algebraic Geometry & Number
+  Theory), `219` (Operator Algebras), `218` (Presenting results of others), `eshnav` (popular, Hebrew).
+  The seminars index page is rendered in the browser, so slugs are found by opening it there.
+- **TAU Exact Sciences** (physics, chemistry, geophysics) — `https://en-exact-sciences.tau.ac.il/events?page=N`,
+  server-rendered, 6 per page; many entries give only the series name.
+- **Bar-Ilan Mathematics** — `https://math.biu.ac.il/en/calendar` (server-rendered month view). Its ICS feed
+  `/ical/biu-math-seminars` returned a server error.
+- **HUJI CS** — `https://www.cs.huji.ac.il/events`, rendered in the browser; few talks.
+- **Weizmann Math & CS faculty** — `https://www.weizmann.ac.il/math/events`, server-rendered; adds seminars
+  missing from the central Weizmann feed.
+- **Haifa Faculty of Natural Sciences** — The Events Calendar REST API:
+  `https://sciences.haifa.ac.il/wp-json/tribe/events/v1/events?start_date=YYYY-MM-DD`; very few talks.

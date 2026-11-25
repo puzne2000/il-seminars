@@ -356,103 +356,127 @@ async function scrapeTechnionCS(pageUrl: string): Promise<ScrapedSeminar[]> {
   return seminars;
 }
 
-const MONTH_NAMES: Record<string, string> = {
-  january: "01", february: "02", march: "03", april: "04",
-  may: "05", june: "06", july: "07", august: "08",
-  september: "09", october: "10", november: "11", december: "12",
-};
+// ── Weizmann ─────────────────────────────────────────────────────────────────
+// The Weizmann events page (https://www.weizmann.ac.il/pages/news/events) loads its
+// events from a JSON endpoint, one month per request:
+//   https://www.weizmann.ac.il/pages/news/events/ajax/events?month=YYYY-MM
 
-async function scrapeWeizmann(pageUrl: string): Promise<ScrapedSeminar[]> {
-  console.log(`Fetching Weizmann: ${pageUrl}`);
-  const response = await fetch(pageUrl, {
-    headers: { "User-Agent": "Mozilla/5.0 (compatible; seminar-scraper/1.0)" },
-  });
-  const html = await response.text();
-  const seminars: ScrapedSeminar[] = [];
+interface WeizmannEvent {
+  id: string;
+  title_en: string;
+  subtitle_en: string;
+  start: string; // "YYYY-MM-DD HH:MM:SS"
+  all_day: boolean;
+  type_name: string; // "Lectures" | "Colloquia" | "Academic" | "Conference" | "Cultural"
+  cat_name: string; // faculty, e.g. "Faculty of Physics"
+  sponsors: { name: string }[];
+  lecturers: { name: string; affiliation: string }[];
+  building: string;
+  room: string;
+  virtual_url: string;
+  abstract_en: string;
+}
 
-  // Only include lecture/seminar/colloquium event types — skip conference, workshop, etc.
-  const INCLUDED_TYPES = new Set(["lecture", "seminar", "colloquium"]);
+const WEIZMANN_MONTHS_AHEAD = 4; // current month + next 3
 
-  const blocks = html.split(/(?=<li class="views-row )/);
+// Only talks — skip conferences, cultural events, student days, retreats, etc.
+const WEIZMANN_INCLUDED_TYPES = new Set(["Lectures", "Colloquia"]);
 
-  for (const block of blocks) {
-    // Event type (lecture / seminar / conference / etc.)
-    const typeMatch = block.match(/<span class="event-type">\s*<span class="([^"]+)">/);
-    if (!typeMatch) continue;
-    const eventTypeClass = typeMatch[1].toLowerCase();
-    if (!INCLUDED_TYPES.has(eventTypeClass)) continue;
-
-    // Individual event ID and URL
-    const idMatch = block.match(/\/pages\/event\/(\d+)\/ics/);
-    if (!idMatch) continue;
-    const eventId = idMatch[1];
-    const sourceUrl = `https://www.weizmann.ac.il/pages/event/${eventId}`;
-
-    // Date: day, month+year are in separate spans
-    const dayMatch = block.match(/start-date-day[^>]*>[\s\S]*?date-display-single">([\d]+)</);
-    const monthYearMatch = block.match(/start-date-month[^>]*>[\s\S]*?date-display-single">([^<]+)</);
-    if (!dayMatch || !monthYearMatch) continue;
-
-    const day = dayMatch[1].padStart(2, "0");
-    const monthYearStr = monthYearMatch[1].trim(); // e.g. "March 2026"
-    const [monthName, yearStr] = monthYearStr.split(" ");
-    const month = MONTH_NAMES[monthName.toLowerCase()];
-    if (!month || !yearStr) continue;
-    const date = `${yearStr}-${month}-${day}`;
-
-    // Time (take start time only)
-    const timeMatch = block.match(/event-time-wrapper">\s*([\d]{1,2}:[\d]{2})/);
-    const time = timeMatch ? timeMatch[1] : "TBA";
-
-    // H3 event title (seminar series / department label)
-    const h3Match = block.match(/event-title-wrapper">([\s\S]*?)<\/h3>/);
-    const seriesTitle = h3Match ? h3Match[1].replace(/<[^>]+>/g, "").trim() : "";
-
-    // Talk subtitle (actual talk title) — preferred as the seminar title
-    const subtitleMatch = block.match(/views-label-field-subtitle-english[\s\S]*?<div class="field-content">([\s\S]*?)<\/div>/);
-    const subtitle = subtitleMatch ? decodeHtml(subtitleMatch[1].replace(/<[^>]+>/g, "").trim()) : "";
-
-    const title = subtitle || seriesTitle;
-    if (!title) continue;
-
-    // Location
-    const locationMatch = block.match(/event-location-wrapper">([\s\S]*?)<\/div>/);
-    const location = locationMatch ? locationMatch[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim() : "Weizmann Institute";
-
-    // Lecturer / Speaker (take text before first <br> or the full td content)
-    const lecturerMatch = block.match(/views-label-field-lecturer-english[\s\S]*?<\/th><td>([\s\S]*?)<\/td>/);
-    let speaker = "TBA";
-    if (lecturerMatch) {
-      const raw = lecturerMatch[1].split(/<br\s*\/?>/i)[0];
-      speaker = raw.replace(/<[^>]+>/g, "").trim() || "TBA";
-    }
-
-    // Abstract
-    const abstractMatch = block.match(/event-abstract-wrapper">([\s\S]*?)<\/div>/);
-    const abstract = abstractMatch
-      ? decodeHtml(abstractMatch[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim())
-      : "";
-
-    const type: "Seminar" | "Colloquium" = eventTypeClass === "colloquium" ? "Colloquium" : "Seminar";
-
-    seminars.push({
-      external_id: `weizmann-${eventId}`,
-      title,
-      speaker,
-      affiliation: "Weizmann Institute of Science",
-      university: "Weizmann Institute",
-      department: seriesTitle || "Weizmann Institute of Science",
-      subject_area: "Natural Sciences",
-      date,
-      time,
-      location,
-      abstract,
-      type,
-      source_url: sourceUrl,
-      zoom_link: extractZoomLink(block),
-    });
+function weizmannSubject(e: WeizmannEvent): string {
+  const cat = e.cat_name || "";
+  if (cat.includes("Physics")) return "Physics";
+  if (cat.includes("Chemistry")) return "Chemistry";
+  if (cat.includes("Life Sciences")) return "Biology";
+  if (cat.includes("Mathematics")) {
+    return e.sponsors.some((s) => /computer science/i.test(s.name)) ? "Computer Science" : "Mathematics";
   }
+  return "Natural Sciences";
+}
 
+function htmlToText(s: string): string {
+  return decodeHtml(s.replace(/<br\s*\/?>|<\/p>/gi, " ").replace(/<[^>]+>/g, "")).replace(/\s+/g, " ").trim();
+}
+
+function weizmannEventToSeminar(e: WeizmannEvent): ScrapedSeminar | null {
+  if (!WEIZMANN_INCLUDED_TYPES.has(e.type_name)) return null;
+
+  const mainTitle = htmlToText(e.title_en || "");
+  const subtitle = htmlToText(e.subtitle_en || "");
+  if (/\bno seminar\b|\bcancel+ed\b/i.test(`${mainTitle} ${subtitle}`)) return null;
+
+  const lecturers = e.lecturers
+    .map((l) => ({ name: htmlToText(l.name), affiliation: htmlToText(l.affiliation || "") }))
+    .filter((l) => l.name && !/will be updated|^tb[ad]$/i.test(l.name));
+
+  // Sometimes title_en is the series name ("Vision and AI") and subtitle_en the talk title;
+  // other times title_en is the talk title and subtitle_en is a note ("Light refreshments 11:30")
+  // or the speaker's name. Use the subtitle as the title only when it doesn't look like such a note.
+  const isPlaceholder = (s: string) => /^(tb[ad]|will be updated)\b/i.test(s);
+  const subtitleIsNote =
+    !subtitle ||
+    isPlaceholder(subtitle) ||
+    /refreshment|zoom|^annual$|^department of|^(prof|dr)\.?\s/i.test(subtitle) ||
+    lecturers.some((l) => l.name === subtitle);
+  const series = subtitleIsNote || isPlaceholder(mainTitle) ? "" : mainTitle;
+  const department = series || e.sponsors[0]?.name || e.cat_name || "Weizmann Institute of Science";
+  let title = subtitleIsNote ? mainTitle : subtitle;
+  // Some organisers put contact details in the title field.
+  if (!title || /@/.test(title)) title = `${department} seminar`;
+
+  const [date, clock] = e.start.split(" ");
+  const time = e.all_day || !clock ? "TBA" : clock.slice(0, 5);
+
+  // Affiliation is sometimes a bio paragraph ("Dr. X is a Senior Scientist..."); keep only short,
+  // non-bio ones.
+  const affiliation = lecturers.find((l) =>
+    l.affiliation && l.affiliation.length <= 100 &&
+    !l.affiliation.includes(l.name) && !/\bis an?\b/i.test(l.affiliation)
+  )?.affiliation ?? "";
+
+  const location = [e.room, e.building].map((s) => (s || "").trim()).filter(Boolean).join(", ") || "Weizmann Institute";
+  const abstract = htmlToText(e.abstract_en || "");
+  const zoom = e.virtual_url && /zoom\.us/i.test(e.virtual_url) ? e.virtual_url : extractZoomLink(e.abstract_en || "");
+
+  return {
+    external_id: `weizmann-${e.id}`,
+    title,
+    speaker: lecturers.map((l) => l.name).join(", ") || "TBA",
+    affiliation,
+    university: "Weizmann Institute",
+    department,
+    subject_area: weizmannSubject(e),
+    date,
+    time,
+    location,
+    abstract,
+    type: e.type_name === "Colloquia" || /colloquium/i.test(mainTitle) ? "Colloquium" : "Seminar",
+    source_url: `https://www.weizmann.ac.il/pages/news/events/event/${e.id}`,
+    zoom_link: zoom,
+  };
+}
+
+async function scrapeWeizmann(baseUrl: string): Promise<ScrapedSeminar[]> {
+  const now = new Date();
+  const months = Array.from({ length: WEIZMANN_MONTHS_AHEAD }, (_, i) => {
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + i, 1));
+    return d.toISOString().slice(0, 7);
+  });
+
+  const seminars: ScrapedSeminar[] = [];
+  for (const month of months) {
+    const url = `${baseUrl}?month=${month}`;
+    console.log(`Fetching Weizmann: ${url}`);
+    const response = await fetch(url, {
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; seminar-scraper/1.0)", Accept: "application/json" },
+    });
+    if (!response.ok) throw new Error(`Weizmann ${month}: HTTP ${response.status}`);
+    const data = await response.json() as { events?: WeizmannEvent[] };
+    if (!Array.isArray(data.events)) throw new Error(`Weizmann ${month}: unexpected response shape`);
+    for (const e of data.events) {
+      const s = weizmannEventToSeminar(e);
+      if (s) seminars.push(s);
+    }
+  }
   return seminars;
 }
 
@@ -568,7 +592,7 @@ const ALL_SOURCES: Record<string, { url: string; scraper: (url: string) => Promi
     scraper: scrapeTechnionCS,
   },
   "weizmann": {
-    url: "https://www.weizmann.ac.il/pages/calendar",
+    url: "https://www.weizmann.ac.il/pages/news/events/ajax/events",
     scraper: scrapeWeizmann,
   },
   "huji-physics": {
