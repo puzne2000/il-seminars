@@ -65,6 +65,7 @@ Logs: `/tmp/il-seminars-frontend.log`
 - `docs/deployment.md` — hosting, deploying, the scheduled scrape
 - `docs/scraping.md` — per-source parsing notes, adding a new source, candidate sources
 - `docs/crontab.md` — the local cron job
+- `docs/design_plan.md` — planned visual and usability improvements
 
 ## Branches
 
