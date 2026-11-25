@@ -59,22 +59,12 @@ Logs: `/tmp/il-seminars-frontend.log`
 | `./start.sh` | Start Vite dev server |
 | `./stop.sh` | Stop it |
 
-## Architecture
+## Documentation
 
-Single-page React app. Seminar data is stored in `public/seminars.json` and fetched by the frontend at runtime. All filtering is done client-side after fetching upcoming seminars (date ≥ yesterday). Data is cached for 5 minutes via React Query.
-
-Key files:
-- `src/pages/Index.tsx` — main page, filter state
-- `src/components/FilterBar.tsx` — search + dropdowns
-- `src/components/SeminarCard.tsx` — individual seminar card
-- `src/hooks/useSeminars.ts` — fetches `/seminars.json`
-- `src/data/seminars.ts` — shared `Seminar` type and constants
-- `scraper.ts` — Deno scraper; writes camelCase `Seminar` objects to `public/seminars.json`
-- `public/seminars.json` — the seminar data
-
-## Adding a new seminar source
-
-See `docs/scraping.md` for per-source parsing notes and instructions.
+- `docs/ARCHITECTURE.md` — how the app works: data format, scraper, merging, frontend files
+- `docs/deployment.md` — hosting, deploying, the scheduled scrape
+- `docs/scraping.md` — per-source parsing notes, adding a new source, candidate sources
+- `docs/crontab.md` — the local cron job
 
 ## Branches
 

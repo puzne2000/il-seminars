@@ -26,7 +26,7 @@ npm run test:watch # Vitest (watch mode)
 
 ## Architecture
 
-Single-page React app. Seminar data is stored in `public/seminars.json` (committed to the repo) and served as a static file. The scraper is a standalone Deno script (`scraper.ts`) that scrapes university websites and writes the JSON file directly.
+Single-page React app. Seminar data is stored in `public/seminars.json` (committed to the repo) and served as a static file. The scraper is a standalone Deno script (`scraper.ts`) that scrapes university websites and writes the JSON file directly. Full description: `docs/ARCHITECTURE.md`.
 
 **Deploy workflow:** `./update-seminars.sh` scrapes, commits `public/seminars.json`, pushes, then builds and deploys to Cloudflare Pages (`https://il-seminars.pages.dev`) with Wrangler. **Pushing to `main` alone does not update the live site** — after pushing code changes, run `npm run build && npx wrangler pages deploy dist --project-name il-seminars --branch main`. See `docs/deployment.md`.
 
